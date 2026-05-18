@@ -5,15 +5,31 @@ use dotenvy::dotenv;
 
 mod db;
 
+// enumで種類を追加
+// MediaType
+enum MediaType {
+    Novel,
+    Anime,
+    Manga,
+    Game,
+}
+
+//status
+enum Status {
+    NotStarted,
+    InProgress,
+    Completed,
+} 
+
 // 作品データの構造体
 // 手動で作品を追加できる機能
 struct Work {
     id: u32,
     title: String,
     author: String,
-    media_type: String,
+    media_type: MediaType,
     genre: String,
-    status: String,   //視聴・プレイ状況
+    status: Status,   //視聴・プレイ状況
     added_at: String, //追加日時(あとでDateTime<Utc>に変えるかも)
 }
 
@@ -27,9 +43,9 @@ async fn main() {
         id: 1,
         title: String::from("とある魔術の禁書目録"),
         author: String::from("鎌池和馬"),
-        media_type: String::from("小説"),
+        media_type: MediaType::Novel,
         genre: String::from("ファンタジー"),
-        status: String::from("未完了"),
+        status: Status::InProgress,
         added_at: String::from("2026-06-01"),
     };
 
