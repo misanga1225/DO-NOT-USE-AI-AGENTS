@@ -1,3 +1,4 @@
+use crate::models::Work;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
@@ -11,4 +12,29 @@ pub async fn establish_connection() -> PgPool {
         .connect(&database_url)
         .await
         .expect("プールの作成に失敗しました")
+}
+
+pub async fn get_list(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
+    let works = sqlx::query_scalar!("SELECT title FROM animes")
+        .fetch_all(pool)
+        .await?;
+
+    Ok(works)
+}
+
+pub async fn insert_work(pool: &PgPool, work: &Work) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "INSERT INTO animes (title, author, description, episodes, media_type, genre, status, added_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        &work.title,
+        &work.author,
+        &work.description,
+        work.episodes,
+        &work.media_type,
+        &work.genre,
+        &work.status,
+        &work.added_at,
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
 }
