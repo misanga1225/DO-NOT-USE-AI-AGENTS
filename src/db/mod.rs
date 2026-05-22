@@ -14,14 +14,7 @@ pub async fn establish_connection() -> PgPool {
         .expect("プールの作成に失敗しました")
 }
 
-pub async fn get_list(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
-    let works = sqlx::query_scalar!("SELECT title FROM animes")
-        .fetch_all(pool)
-        .await?;
-
-    Ok(works)
-}
-
+// 作品を追加
 pub async fn insert_work(pool: &PgPool, work: &Work) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "INSERT INTO animes (title, author, description, episodes, media_type, genre, status, added_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
@@ -29,12 +22,21 @@ pub async fn insert_work(pool: &PgPool, work: &Work) -> Result<(), sqlx::Error> 
         &work.author,
         &work.description,
         work.episodes,
-        &work.media_type,
+        work.media_type.as_str(),
         &work.genre,
-        &work.status,
+        work.status.as_str(),
         &work.added_at,
     )
     .execute(pool)
     .await?;
     Ok(())
+}
+
+// タイトル一覧をDBから取得
+pub async fn get_list(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
+    let works = sqlx::query_scalar!("SELECT title FROM animes")
+        .fetch_all(pool)
+        .await?;
+
+    Ok(works)
 }
