@@ -33,10 +33,25 @@ pub async fn insert_work(pool: &PgPool, work: &Work) -> Result<(), sqlx::Error> 
 }
 
 // タイトル一覧をDBから取得
-pub async fn get_list(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
-    let works = sqlx::query_scalar!("SELECT title FROM animes")
-        .fetch_all(pool)
-        .await?;
+// フィルタの機能もこの関数に集約
+pub async fn get_list(pool: &PgPool, status: Option<&str>) -> Result<Vec<String>, sqlx::Error> {
+    if let Some(status) = status {
+        sqlx::query_scalar!("SELECT title FROM animes WHERE status = $1", status)
+            .fetch_all(pool)
+            .await
+    } else {
+        sqlx::query_scalar!("SELECT title FROM animes")
+            .fetch_all(pool)
+            .await
+    }
+}
 
-    Ok(works)
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::Status;
+
+    fn filter_status<'a>(works: &'a [Work], status: &'a Status) -> Vec<&'a Work> {
+        works.iter().filter(|w| w.status == *status).collect()
+    }
 }
