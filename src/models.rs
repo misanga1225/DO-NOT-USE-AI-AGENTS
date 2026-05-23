@@ -4,11 +4,6 @@ use std::str::FromStr;
 // 今日はパッケージ，クレート，モジュールについて勉強しました！実装はごめんちょっと間に合わなかった！
 // 明日中に追加したくなったら連絡するかもしれない！ 2026/05/20.21
 
-// フィルタ関数の追加
-pub fn filter_status<'a>(works: &'a [Work], status: &'a Status) -> Vec<&'a Work> {
-    works.iter().filter(|w|w.status == *status).collect()
-}
-
 // enumで種類を追加
 // MediaType
 #[derive(Debug, PartialEq, Clone)]

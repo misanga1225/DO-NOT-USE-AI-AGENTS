@@ -7,4 +7,6 @@
   * 最悪，意味を理解していればLLMのコードを一部写経することも可
 
 ※dockerを用いてポスグレ環境を構築
+  * docker compose up -d
+  * docker exec -it anime_postgres psql -U postgres -d animedb
 ※cargo testでテスト実行
