@@ -1,8 +1,16 @@
+use rand::seq::IteratorRandom;
 use sqlx::types::chrono::{DateTime, NaiveDate, Utc};
 use std::fmt;
 use std::str::FromStr;
 // 今日はパッケージ，クレート，モジュールについて勉強しました！実装はごめんちょっと間に合わなかった！
 // 明日中に追加したくなったら連絡するかもしれない！ 2026/05/20.21
+
+// 作品リストから特定の作品をお勧めする機能
+// 今はまだアルゴリズムがランダムだけど，将来的にはリストの中からAIに選ばせたい
+pub fn pick_recommend (works: &[Work]) -> Option<&Work>{
+    works.iter().filter(|w| w.status == Status::NotStarted).choose(&mut rand::rng())
+}
+
 
 // enumで種類を追加
 // MediaType
