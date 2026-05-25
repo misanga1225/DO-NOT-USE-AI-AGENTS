@@ -1,18 +1,7 @@
-use rand::seq::IteratorRandom;
 use sqlx::types::chrono::{DateTime, NaiveDate, Utc};
 use std::fmt;
 use std::str::FromStr;
-// 今日はパッケージ，クレート，モジュールについて勉強しました！実装はごめんちょっと間に合わなかった！
-// 明日中に追加したくなったら連絡するかもしれない！ 2026/05/20.21
 
-// 作品リストから特定の作品をお勧めする機能
-// 今はまだアルゴリズムがランダムだけど，将来的にはリストの中からAIに選ばせたい
-pub fn pick_recommend (works: &[Work]) -> Option<&Work>{
-    works.iter().filter(|w| w.status == Status::NotStarted).choose(&mut rand::rng())
-}
-
-
-// enumで種類を追加
 // MediaType
 #[derive(Debug, PartialEq, Clone)]
 pub enum MediaType {
@@ -81,7 +70,7 @@ impl FromStr for Status {
     }
 }
 
-// enum -> 文字列 への変換（DBのVARCHAR列に保存するときに使う）
+// enum -> 文字列への変換（DBのVARCHAR列に保存するときに使う）
 impl MediaType {
     pub fn as_str(&self) -> &str {
         match self {
@@ -111,7 +100,6 @@ mod tests {
 
     #[test]
     fn test_mediatype_from_str() {
-        // assert系は出力が予期したものかどうかを判断する
         assert_eq!(MediaType::from_str("Novel"), Ok(MediaType::Novel));
         assert_eq!(MediaType::from_str("Game"), Ok(MediaType::Game));
         assert_eq!(MediaType::from_str("InvalidStr"), Err(ParseError));
