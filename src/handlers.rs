@@ -13,16 +13,28 @@ pub async fn root() -> &'static str {
     "Anime Recommend API"
 }
 
-// 文字列だけブラウザに表示
+// 作品のタイトル一覧を表示
 pub async fn list(
     State(pool): State<PgPool>,
     Query(query): Query<ListQuery>,
 ) -> Result<String, (StatusCode, String)> {
     match db::get_list(&pool, query.status.as_deref()).await {
-        Ok(works) => Ok(works.join("\n")),
+        Ok(titles) => Ok(titles.join("\n")),
         Err(_) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            "作品リストを取得できませんでした".to_string(),
+            "作品一覧を取得できませんでした".to_string(),
+        )),
+    }
+}
+
+// ランダムに選ばれたおすすめ作品の表示
+pub async fn random(State(pool): State<PgPool>) -> Result<String, (StatusCode, String)> {
+    match db::picked_random(&pool).await {
+        Ok(Some(title)) => Ok(title),
+        Ok(None) => Ok("おすすめできる作品がありません".to_string()),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "おすすめ作品を取得できませんでした".to_string(),
         )),
     }
 }

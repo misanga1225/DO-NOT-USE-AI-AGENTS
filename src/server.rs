@@ -1,4 +1,3 @@
-// アプリの組み立てと起動を担当
 use crate::db;
 use crate::handlers;
 use crate::models::{MediaType, Status, Work};
@@ -27,17 +26,18 @@ pub async fn run() -> Result<()> {
     };
     db::insert_work(&pool, &work).await?;
 
-    // ルータの作成
-    // エンドポイントと，ハンドラと呼ばれるリクエストに対してどんなレスポンスを返すかの関数も後に実装
+    // ルータ及びハンドラ
     let app = Router::new()
         .route("/", get(handlers::root))
         .route("/list", get(handlers::list))
+        .route("/recommend", get(handlers::random))
         .with_state(pool);
 
     // TCPリスナの作成
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
 
-    println!("listening on {:?}", listener.local_addr()?);
+    let addr = listener.local_addr()?;
+    println!("listening on http://{}", addr);
 
     // HTTPサーバの起動
     axum::serve(listener, app).await?;

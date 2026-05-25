@@ -1,4 +1,3 @@
-//! 実行ファイルのエントリポイント。ライブラリの run() を呼び出すだけ。
 use anyhow::Result;
 
 #[tokio::main]
