@@ -3,6 +3,7 @@ use axum::{Json, extract::Query, extract::State, http::StatusCode};
 use serde::Deserialize;
 use sqlx::PgPool;
 use std::option::Option;
+use crate::models::{MediaType, Status};
 
 #[derive(Deserialize)]
 pub struct ListQuery {
@@ -37,4 +38,18 @@ pub async fn random(State(pool): State<PgPool>) -> Result<String, (StatusCode, S
             "おすすめ作品を取得できませんでした".to_string(),
         )),
     }
+}
+
+// worksエンドポイントの実装.途中．
+// 試しに書いてみたやつだからどう扱っていただいても問題ないです！！！
+#[derive(Deserialize)]
+pub struct WorkRequest {
+    pub title: String,
+    pub author: String,
+    pub description: String,
+    pub episodes: Option<i32>,
+    pub media_type: MediaType,
+    pub genre: String,
+    pub status: Status,
+    pub added_at: String,
 }
