@@ -1,9 +1,10 @@
+use serde::Deserialize;
 use sqlx::types::chrono::{DateTime, NaiveDate, Utc};
 use std::fmt;
 use std::str::FromStr;
 
 // MediaType
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Deserialize)]
 pub enum MediaType {
     Novel,
     Anime,
@@ -12,7 +13,7 @@ pub enum MediaType {
 }
 
 //status
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Deserialize)]
 pub enum Status {
     NotStarted,
     InProgress,
