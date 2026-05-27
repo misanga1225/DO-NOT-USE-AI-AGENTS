@@ -14,32 +14,55 @@ pub async fn establish_connection() -> PgPool {
         .expect("プールの作成に失敗しました")
 }
 
-// 作品を追加
+// 作品を追加（genres は別テーブルに展開してリンクする）
 pub async fn insert_work(pool: &PgPool, work: &Work) -> Result<(), sqlx::Error> {
-    sqlx::query!(
-        "INSERT INTO animes (title, author, description, episodes, media_type, genre, status, added_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    let mut tx = pool.begin().await?;
+
+    let work_id: i32 = sqlx::query_scalar!(
+        "INSERT INTO works (title, author, description, episodes, media_type, status)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
         &work.title,
         &work.author,
         &work.description,
         work.episodes,
         work.media_type.as_str(),
-        &work.genre,
         work.status.as_str(),
-        &work.added_at,
     )
-    .execute(pool)
+    .fetch_one(&mut *tx)
     .await?;
-    Ok(())
+
+    for name in &work.genres {
+        // 既存ジャンルなら id を取り、無ければ新規作成して id を返す
+        let genre_id: i32 = sqlx::query_scalar!(
+            "INSERT INTO genres (name) VALUES ($1)
+             ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+             RETURNING id",
+            name
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO work_genres (work_id, genre_id) VALUES ($1, $2)
+             ON CONFLICT DO NOTHING",
+            work_id,
+            genre_id
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    tx.commit().await
 }
 
 // タイトル一覧をDBから取得
 pub async fn get_list(pool: &PgPool, status: Option<&str>) -> Result<Vec<String>, sqlx::Error> {
     if let Some(status) = status {
-        sqlx::query_scalar!("SELECT title FROM animes WHERE status = $1", status)
+        sqlx::query_scalar!("SELECT title FROM works WHERE status = $1", status)
             .fetch_all(pool)
             .await
     } else {
-        sqlx::query_scalar!("SELECT title FROM animes")
+        sqlx::query_scalar!("SELECT title FROM works")
             .fetch_all(pool)
             .await
     }
@@ -47,7 +70,7 @@ pub async fn get_list(pool: &PgPool, status: Option<&str>) -> Result<Vec<String>
 
 pub async fn picked_random(pool: &PgPool) -> Result<Option<String>, sqlx::Error> {
     sqlx::query_scalar!(
-        "SELECT title FROM animes WHERE status = 'NotStarted' ORDER BY RANDOM() LIMIT 1"
+        "SELECT title FROM works WHERE status = 'NotStarted' ORDER BY RANDOM() LIMIT 1"
     )
     .fetch_optional(pool)
     .await
