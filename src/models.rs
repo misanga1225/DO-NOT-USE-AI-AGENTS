@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use sqlx::types::chrono::{DateTime, NaiveDate, Utc};
 use std::fmt;
 use std::str::FromStr;
 
@@ -23,16 +22,13 @@ pub enum Status {
 // 作品データの構造体
 // 手動で作品を追加できる機能
 pub struct Work {
-    pub id: i32,
     pub title: String,
     pub author: String,
     pub description: String,
-    pub episodes: i32,
+    pub episodes: Option<i32>,
     pub media_type: MediaType,
-    pub genre: String,
+    pub genres: Vec<String>,
     pub status: Status,
-    pub added_at: NaiveDate,
-    pub created_at: DateTime<Utc>,
 }
 
 // enum変換の際のエラーの定義

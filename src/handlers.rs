@@ -1,9 +1,9 @@
 use crate::db;
-use axum::{Json, extract::Query, extract::State, http::StatusCode};
+use crate::models::{MediaType, Status};
+use axum::{extract::Query, extract::State, http::StatusCode};
 use serde::Deserialize;
 use sqlx::PgPool;
 use std::option::Option;
-use crate::models::{MediaType, Status};
 
 #[derive(Deserialize)]
 pub struct ListQuery {
@@ -49,7 +49,6 @@ pub struct WorkRequest {
     pub description: String,
     pub episodes: Option<i32>,
     pub media_type: MediaType,
-    pub genre: String,
+    pub genres: Vec<String>,
     pub status: Status,
-    pub added_at: String,
 }
