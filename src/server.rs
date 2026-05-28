@@ -2,7 +2,7 @@ use crate::db;
 use crate::handlers;
 use crate::models::{MediaType, Status, Work};
 use anyhow::Result;
-use axum::{Router, routing::get};
+use axum::{Router, routing::get, routing::post};
 
 // 環境変数の読み込み → DB接続 → ルータ構築 → サーバ起動
 pub async fn run() -> Result<()> {
@@ -27,6 +27,7 @@ pub async fn run() -> Result<()> {
         .route("/", get(handlers::root))
         .route("/list", get(handlers::list))
         .route("/recommend", get(handlers::random))
+        .route("/works", post(handlers::create_work))
         .with_state(pool);
 
     // TCPリスナの作成
