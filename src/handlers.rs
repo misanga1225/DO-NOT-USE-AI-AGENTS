@@ -1,6 +1,7 @@
 use crate::db;
-use crate::models::{MediaType, Status};
-use axum::{extract::Query, extract::State, http::StatusCode};
+use crate::models::{MediaType, Status, Work};
+// use anyhow::Ok;
+use axum::{extract::Query, extract::State, extract::Json, http::StatusCode};
 use serde::Deserialize;
 use sqlx::PgPool;
 use std::option::Option;
@@ -40,8 +41,7 @@ pub async fn random(State(pool): State<PgPool>) -> Result<String, (StatusCode, S
     }
 }
 
-// worksエンドポイントの実装.途中．
-// 試しに書いてみたやつだからどう扱っていただいても問題ないです！！！
+// worksエンドポイントの実装
 #[derive(Deserialize)]
 pub struct WorkRequest {
     pub title: String,
@@ -51,4 +51,28 @@ pub struct WorkRequest {
     pub media_type: MediaType,
     pub genres: Vec<String>,
     pub status: Status,
+}
+
+// 受け取ったデータをDBに保存する処理
+pub async fn create_work(
+    State(pool): State<PgPool>,
+    Json(body): Json<WorkRequest>,
+) -> Result<String, (StatusCode, String)> {
+    let work = Work {
+        title: body.title,
+        author: body.author,
+        description: body.description,
+        episodes: body.episodes,
+        media_type: body.media_type,
+        genres: body.genres,
+        status: body.status,
+    };
+    // DB登録処理呼び出し
+    match db::insert_work(&pool, &work).await {
+        Ok(_) => Ok("登録しました".to_string()),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "登録に失敗しました".to_string(),
+        )),  
+    }
 }
