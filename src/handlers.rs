@@ -8,6 +8,7 @@ use std::option::Option;
 
 #[derive(Deserialize)]
 pub struct ListQuery {
+    user_id: i32,
     status: Option<String>,
 }
 
@@ -20,7 +21,7 @@ pub async fn list(
     State(pool): State<PgPool>,
     Query(query): Query<ListQuery>,
 ) -> Result<String, (StatusCode, String)> {
-    match db::get_list(&pool, query.status.as_deref()).await {
+    match db::get_list(&pool, query.user_id, query.status.as_deref()).await {
         Ok(titles) => Ok(titles.join("\n")),
         Err(_) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -29,9 +30,17 @@ pub async fn list(
     }
 }
 
+#[derive(Deserialize)]
+pub struct RecommendQuery {
+    user_id: i32,
+}
+
 // ランダムに選ばれたおすすめ作品の表示
-pub async fn random(State(pool): State<PgPool>) -> Result<String, (StatusCode, String)> {
-    match db::picked_random(&pool).await {
+pub async fn random(
+    State(pool): State<PgPool>,
+    Query(query): Query<RecommendQuery>,
+) -> Result<String, (StatusCode, String)> {
+    match db::picked_random(&pool, query.user_id).await {
         Ok(Some(title)) => Ok(title),
         Ok(None) => Ok("おすすめできる作品がありません".to_string()),
         Err(_) => Err((
@@ -44,6 +53,7 @@ pub async fn random(State(pool): State<PgPool>) -> Result<String, (StatusCode, S
 // worksエンドポイントの実装
 #[derive(Deserialize)]
 pub struct WorkRequest {
+    pub user_id: i32,
     pub title: String,
     pub author: String,
     pub description: String,
@@ -65,10 +75,9 @@ pub async fn create_work(
         episodes: body.episodes,
         media_type: body.media_type,
         genres: body.genres,
-        status: body.status,
     };
     // DB登録処理呼び出し
-    match db::insert_work(&pool, &work).await {
+    match db::insert_work(&pool, &work, body.user_id, &body.status).await {
         Ok(_) => Ok("登録しました".to_string()),
         Err(_) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,

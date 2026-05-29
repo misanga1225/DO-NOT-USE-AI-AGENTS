@@ -1,4 +1,4 @@
-use crate::models::Work;
+use crate::models::{Status, Work};
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
@@ -15,18 +15,22 @@ pub async fn establish_connection() -> PgPool {
 }
 
 // 作品を追加（genres は別テーブルに展開してリンクする）
-pub async fn insert_work(pool: &PgPool, work: &Work) -> Result<(), sqlx::Error> {
+pub async fn insert_work(
+    pool: &PgPool,
+    work: &Work,
+    user_id: i32,
+    status: &Status,
+) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
 
     let work_id: i32 = sqlx::query_scalar!(
-        "INSERT INTO works (title, author, description, episodes, media_type, status)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+        "INSERT INTO works (title, author, description, episodes, media_type)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id",
         &work.title,
         &work.author,
         &work.description,
         work.episodes,
         work.media_type.as_str(),
-        work.status.as_str(),
     )
     .fetch_one(&mut *tx)
     .await?;
@@ -52,28 +56,73 @@ pub async fn insert_work(pool: &PgPool, work: &Work) -> Result<(), sqlx::Error> 
         .await?;
     }
 
+    sqlx::query!(
+        "INSERT INTO user_works (user_id, work_id, status) VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, work_id) DO UPDATE SET status = EXCLUDED.status",
+        user_id,
+        work_id,
+        status.as_str(),
+    )
+    .execute(&mut *tx)
+    .await?;
+
     tx.commit().await
 }
 
 // タイトル一覧をDBから取得
-pub async fn get_list(pool: &PgPool, status: Option<&str>) -> Result<Vec<String>, sqlx::Error> {
+pub async fn get_list(
+    pool: &PgPool,
+    user_id: i32,
+    status: Option<&str>,
+) -> Result<Vec<String>, sqlx::Error> {
     if let Some(status) = status {
-        sqlx::query_scalar!("SELECT title FROM works WHERE status = $1", status)
-            .fetch_all(pool)
-            .await
+        sqlx::query_scalar!(
+            "SELECT w.title
+             FROM works w
+             JOIN user_works uw ON uw.work_id = w.id
+             WHERE uw.user_id = $1 AND uw.status = $2",
+            user_id,
+            status
+        )
+        .fetch_all(pool)
+        .await
     } else {
-        sqlx::query_scalar!("SELECT title FROM works")
-            .fetch_all(pool)
-            .await
+        sqlx::query_scalar!(
+            "SELECT w.title
+             FROM works w
+             JOIN user_works uw ON uw.work_id = w.id
+             WHERE uw.user_id = $1",
+            user_id
+        )
+        .fetch_all(pool)
+        .await
     }
 }
 
-pub async fn picked_random(pool: &PgPool) -> Result<Option<String>, sqlx::Error> {
+pub async fn picked_random(pool: &PgPool, user_id: i32) -> Result<Option<String>, sqlx::Error> {
     sqlx::query_scalar!(
-        "SELECT title FROM works WHERE status = 'NotStarted' ORDER BY RANDOM() LIMIT 1"
+        "SELECT w.title
+         FROM works w
+         JOIN user_works uw ON uw.work_id = w.id
+         WHERE uw.user_id = $1 AND uw.status = 'NotStarted'
+         ORDER BY RANDOM() LIMIT 1",
+        user_id
     )
     .fetch_optional(pool)
     .await
+}
+
+// 認証導入までの動作確認用
+pub async fn ensure_demo_user(pool: &PgPool) -> Result<i32, sqlx::Error> {
+    if let Some(id) = sqlx::query_scalar!("SELECT id FROM users WHERE name = 'demo'")
+        .fetch_optional(pool)
+        .await?
+    {
+        return Ok(id);
+    }
+    sqlx::query_scalar!("INSERT INTO users (name) VALUES ('demo') RETURNING id")
+        .fetch_one(pool)
+        .await
 }
 
 // DB用のユニットテストだが，現状ヘルパー関数の置き場（後でどうにかする）
@@ -82,13 +131,14 @@ mod tests {
     use super::*;
     use crate::models::Status;
 
+    /*
     #[allow(dead_code)]
     fn filter_status<'a>(works: &'a [Work], status: &'a Status) -> Vec<&'a Work> {
         works.iter().filter(|w| w.status == *status).collect()
     }
+    */
 
-    // 作品リストから特定の作品をお勧めする機能
-    // 今はまだアルゴリズムがランダムだけど，将来的にはリストの中からAIに選ばせたい
+    /*
     #[allow(dead_code)]
     pub fn pick_recommend(works: &[Work]) -> Option<&Work> {
         works
@@ -96,4 +146,5 @@ mod tests {
             .filter(|w| w.status == Status::NotStarted)
             .choose(&mut rand::rng())
     }
+    */
 }
