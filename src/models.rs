@@ -28,7 +28,6 @@ pub struct Work {
     pub episodes: Option<i32>,
     pub media_type: MediaType,
     pub genres: Vec<String>,
-    pub status: Status,
 }
 
 // enum変換の際のエラーの定義

@@ -16,6 +16,7 @@ CREATE TABLE genres (
     name VARCHAR(100) NOT NULL UNIQUE
 );
 
+-- 作品のジャンルのための中間テーブル
 CREATE TABLE work_genres (
     work_id  INT NOT NULL REFERENCES works(id)  ON DELETE CASCADE,
     genre_id INT NOT NULL REFERENCES genres(id) ON DELETE RESTRICT,
