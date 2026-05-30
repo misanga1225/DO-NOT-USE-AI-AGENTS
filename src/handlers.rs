@@ -85,3 +85,13 @@ pub async fn create_work(
         )),  
     }
 }
+
+// AIが作品をレコメンドする機能のエンドポイント作成
+pub async fn ai_recommend(
+    State(pool): State<PgPool>,
+) -> Result<String, (StatusCode, String)> {
+    // 作品一覧取得
+    // APIを呼ぶ
+    
+    Ok("準備中".to_string())
+}

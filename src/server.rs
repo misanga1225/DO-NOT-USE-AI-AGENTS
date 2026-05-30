@@ -15,6 +15,7 @@ pub async fn run() -> Result<()> {
         .route("/list", get(handlers::list))
         .route("/recommend", get(handlers::random))
         .route("/works", post(handlers::create_work))
+        .route("/ai-recommend", get(handlers::ai_recommend))
         .with_state(pool);
 
     // TCPリスナの作成
