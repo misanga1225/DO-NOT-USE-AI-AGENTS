@@ -1,7 +1,7 @@
 use crate::db;
 use crate::models::{MediaType, Status, Work};
 // use anyhow::Ok;
-use axum::{extract::Query, extract::State, extract::Json, http::StatusCode};
+use axum::{extract::Json, extract::Query, extract::State, http::StatusCode};
 use serde::Deserialize;
 use sqlx::PgPool;
 use std::option::Option;
@@ -30,17 +30,38 @@ pub async fn list(
     }
 }
 
+// レコメンドの選定方法
+// クエリパラメータ分岐用
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Strategy {
+    #[default]
+    Random,
+    Ai,
+}
+
 #[derive(Deserialize)]
 pub struct RecommendQuery {
     user_id: i32,
+    #[serde(default)]
+    strategy: Strategy,
 }
 
-// ランダムに選ばれたおすすめ作品の表示
-pub async fn random(
+// おすすめ作品の表示
+// strategyでおすすめ法を振り分け
+pub async fn recommendations(
     State(pool): State<PgPool>,
     Query(query): Query<RecommendQuery>,
 ) -> Result<String, (StatusCode, String)> {
-    match db::picked_random(&pool, query.user_id).await {
+    match query.strategy {
+        Strategy::Random => recommend_random(&pool, query.user_id).await,
+        Strategy::Ai => recommend_ai(&pool, query.user_id).await,
+    }
+}
+
+// ランダムに選ばれたおすすめ作品の表示
+async fn recommend_random(pool: &PgPool, user_id: i32) -> Result<String, (StatusCode, String)> {
+    match db::picked_random(pool, user_id).await {
         Ok(Some(title)) => Ok(title),
         Ok(None) => Ok("おすすめできる作品がありません".to_string()),
         Err(_) => Err((
@@ -48,6 +69,14 @@ pub async fn random(
             "おすすめ作品を取得できませんでした".to_string(),
         )),
     }
+}
+
+// AIが作品をレコメンドする機能（準備中）
+async fn recommend_ai(_pool: &PgPool, _user_id: i32) -> Result<String, (StatusCode, String)> {
+    // 作品一覧取得
+    // APIを呼ぶ
+
+    Ok("準備中".to_string())
 }
 
 // worksエンドポイントの実装
@@ -82,16 +111,6 @@ pub async fn create_work(
         Err(_) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             "登録に失敗しました".to_string(),
-        )),  
+        )),
     }
-}
-
-// AIが作品をレコメンドする機能のエンドポイント作成
-pub async fn ai_recommend(
-    State(pool): State<PgPool>,
-) -> Result<String, (StatusCode, String)> {
-    // 作品一覧取得
-    // APIを呼ぶ
-    
-    Ok("準備中".to_string())
 }

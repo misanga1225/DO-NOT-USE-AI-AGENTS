@@ -13,9 +13,8 @@ pub async fn run() -> Result<()> {
     let app = Router::new()
         .route("/", get(handlers::root))
         .route("/list", get(handlers::list))
-        .route("/recommend", get(handlers::random))
+        .route("/recommendations", get(handlers::recommendations))
         .route("/works", post(handlers::create_work))
-        .route("/ai-recommend", get(handlers::ai_recommend))
         .with_state(pool);
 
     // TCPリスナの作成
