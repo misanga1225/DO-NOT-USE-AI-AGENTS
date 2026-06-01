@@ -72,10 +72,17 @@ async fn recommend_random(pool: &PgPool, user_id: i32) -> Result<String, (Status
 }
 
 // AIが作品をレコメンドする機能（準備中）
-async fn recommend_ai(_pool: &PgPool, _user_id: i32) -> Result<String, (StatusCode, String)> {
+async fn recommend_ai(pool: &PgPool, user_id: i32) -> Result<String, (StatusCode, String)> {
     // 作品一覧取得
-    // APIを呼ぶ
+    let work_list = match db::get_list(pool, user_id, None).await {
+        Ok(titles) => titles,
+        Err(_) => return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "おすすめ作品を取得できませんでした".to_string(),
+        ))
+    };
 
+    // APIを呼ぶ
     Ok("準備中".to_string())
 }
 
