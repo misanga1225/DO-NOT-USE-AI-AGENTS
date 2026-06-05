@@ -7,6 +7,8 @@ use axum::{Router, routing::get, routing::post};
 pub async fn run() -> Result<()> {
     dotenvy::dotenv().ok();
 
+    tracing_subscriber::fmt::init();
+
     let pool = db::establish_connection().await;
 
     // ルータ及びハンドラ

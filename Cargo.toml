@@ -18,3 +18,5 @@ sqlx = { version = "0.8", features = [
 ] }
 tokio = { version = "1.52.3", features = ["full"] }
 rand = "0.9.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
