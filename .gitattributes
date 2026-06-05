@@ -1,0 +1,12 @@
+# 改行コードをリポジトリ全体でLFに統一する。
+# Windows の core.autocrlf による CRLF 混入を防ぎ、
+# sqlx のマイグレーション・チェックサム不一致を再発させないため。
+* text=auto eol=lf
+
+# SQL マイグレーションは特に厳密に LF 固定（チェックサム対象なので重要）
+*.sql text eol=lf
+
+# 画像などのバイナリは変換対象から除外（誤変換による破損防止）
+*.png binary
+*.jpg binary
+*.ico binary
