@@ -1,7 +1,8 @@
 use crate::db;
+use crate::error::AppError;
 use crate::models::{MediaType, Status, Work};
 // use anyhow::Ok;
-use axum::{extract::Json, extract::Query, extract::State, http::StatusCode};
+use axum::{extract::Json, extract::Query, extract::State};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::option::Option;
@@ -28,14 +29,9 @@ pub async fn root() -> Json<MessageResponse> {
 pub async fn list(
     State(pool): State<PgPool>,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<String>>, (StatusCode, String)> {
-    match db::get_list(&pool, query.user_id, query.status.as_deref()).await {
-        Ok(titles) => Ok(Json(titles)),
-        Err(_) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "作品一覧を取得できませんでした".to_string(),
-        )),
-    }
+) -> Result<Json<Vec<String>>, AppError> {
+    let titles = db::get_list(&pool, query.user_id, query.status.as_deref()).await?;
+    Ok(Json(titles))
 }
 
 // レコメンドの選定方法
@@ -60,7 +56,7 @@ pub struct RecommendQuery {
 pub async fn recommendations(
     State(pool): State<PgPool>,
     Query(query): Query<RecommendQuery>,
-) -> Result<Json<MessageResponse>, (StatusCode, String)> {
+) -> Result<Json<MessageResponse>, AppError> {
     match query.strategy {
         Strategy::Random => recommend_random(&pool, query.user_id).await,
         Strategy::Ai => recommend_ai(&pool, query.user_id).await,
@@ -68,35 +64,19 @@ pub async fn recommendations(
 }
 
 // ランダムに選ばれたおすすめ作品の表示
-async fn recommend_random(
-    pool: &PgPool,
-    user_id: i32,
-) -> Result<Json<MessageResponse>, (StatusCode, String)> {
-    match db::picked_random(pool, user_id).await {
-        Ok(Some(title)) => Ok(Json(MessageResponse { message: title })),
-        Ok(None) => Ok(Json(MessageResponse {
+async fn recommend_random(pool: &PgPool, user_id: i32) -> Result<Json<MessageResponse>, AppError> {
+    match db::picked_random(pool, user_id).await? {
+        Some(title) => Ok(Json(MessageResponse { message: title })),
+        None => Ok(Json(MessageResponse {
             message: "おすすめできる作品がありません".to_string(),
         })),
-        Err(_) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "おすすめ作品を取得できませんでした".to_string(),
-        )),
     }
 }
 
 // AIが作品をレコメンドする機能（準備中）
-async fn recommend_ai(
-    pool: &PgPool,
-    user_id: i32,
-) -> Result<Json<MessageResponse>, (StatusCode, String)> {
+async fn recommend_ai(pool: &PgPool, user_id: i32) -> Result<Json<MessageResponse>, AppError> {
     // 作品一覧取得
-    let work_list = match db::get_list(pool, user_id, None).await {
-        Ok(titles) => titles,
-        Err(_) => return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "おすすめ作品を取得できませんでした".to_string(),
-        ))
-    };
+    let _work_list = db::get_list(pool, user_id, None).await?;
 
     // APIを呼ぶ
     Ok(Json(MessageResponse {
@@ -121,7 +101,7 @@ pub struct WorkRequest {
 pub async fn create_work(
     State(pool): State<PgPool>,
     Json(body): Json<WorkRequest>,
-) -> Result<Json<MessageResponse>, (StatusCode, String)> {
+) -> Result<Json<MessageResponse>, AppError> {
     let work = Work {
         title: body.title,
         author: body.author,
@@ -131,13 +111,8 @@ pub async fn create_work(
         genres: body.genres,
     };
     // DB登録処理呼び出し
-    match db::insert_work(&pool, &work, body.user_id, &body.status).await {
-        Ok(_) => Ok(Json(MessageResponse {
-            message: "登録しました".to_string(),
-        })),
-        Err(_) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "登録に失敗しました".to_string(),
-        )),
-    }
+    db::insert_work(&pool, &work, body.user_id, &body.status).await?;
+    Ok(Json(MessageResponse {
+        message: "登録しました".to_string(),
+    }))
 }
