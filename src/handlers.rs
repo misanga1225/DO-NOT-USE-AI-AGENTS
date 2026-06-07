@@ -76,7 +76,8 @@ async fn recommend_random(pool: &PgPool, user_id: i32) -> Result<Json<MessageRes
 // AIが作品をレコメンドする機能（準備中）
 async fn recommend_ai(pool: &PgPool, user_id: i32) -> Result<Json<MessageResponse>, AppError> {
     // 作品一覧取得
-    let _work_list = db::get_list(pool, user_id, None).await?;
+    let _completed_work_list = db::get_list(pool, user_id, Some("Completed")).await?;
+    let _notstarted_work_list = db::get_list(pool, user_id, Some("NotStarted")).await?;
 
     // APIを呼ぶ
     Ok(Json(MessageResponse {
