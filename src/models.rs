@@ -91,7 +91,6 @@ impl Status {
 // 以下ユニットテスト
 #[cfg(test)]
 mod tests {
-    //enumとFromStrをテストに取り込む
     use super::*;
 
     #[test]

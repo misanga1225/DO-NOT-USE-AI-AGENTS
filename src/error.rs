@@ -45,3 +45,21 @@ impl From<sqlx::Error> for AppError {
         AppError::Database(e)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::StatusCode;
+
+    #[test]
+    fn notfound() {
+        let res = AppError::NotFound("なし".into()).into_response();
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn external() {
+        let res = AppError::External("api error".into()).into_response();
+        assert_eq!(res.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+}
