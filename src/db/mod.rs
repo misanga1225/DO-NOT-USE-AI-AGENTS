@@ -112,6 +112,43 @@ pub async fn picked_random(pool: &PgPool, user_id: i32) -> Result<Option<String>
     .await
 }
 
+// ログイン照合に必要な最小限のユーザ情報
+pub struct UserCredentials {
+    pub id: i32,
+    pub password_hash: Option<String>,
+}
+
+// 新規ユーザーを登録
+pub async fn register(
+    pool: &PgPool,
+    name: &str,
+    email: &str,
+    password_hash: &str,
+) -> Result<i32, sqlx::Error> {
+    sqlx::query_scalar!(
+        "INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id",
+        name,
+        email,
+        password_hash
+    )
+    .fetch_one(pool)
+    .await
+}
+
+// メールアドレスから照合用のユーザ情報を引く
+pub async fn find_user_by_email(
+    pool: &PgPool,
+    email: &str,
+) -> Result<Option<UserCredentials>, sqlx::Error> {
+    sqlx::query_as!(
+        UserCredentials,
+        "SELECT id, password_hash FROM users WHERE email = $1",
+        email
+    )
+    .fetch_optional(pool)
+    .await
+}
+
 // 認証導入までの動作確認用
 pub async fn ensure_demo_user(pool: &PgPool) -> Result<i32, sqlx::Error> {
     if let Some(id) = sqlx::query_scalar!("SELECT id FROM users WHERE name = 'demo'")
@@ -123,28 +160,4 @@ pub async fn ensure_demo_user(pool: &PgPool) -> Result<i32, sqlx::Error> {
     sqlx::query_scalar!("INSERT INTO users (name) VALUES ('demo') RETURNING id")
         .fetch_one(pool)
         .await
-}
-
-// DB用のユニットテストだが，現状ヘルパー関数の置き場（後でどうにかする）
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::models::Status;
-
-    /*
-    #[allow(dead_code)]
-    fn filter_status<'a>(works: &'a [Work], status: &'a Status) -> Vec<&'a Work> {
-        works.iter().filter(|w| w.status == *status).collect()
-    }
-    */
-
-    /*
-    #[allow(dead_code)]
-    pub fn pick_recommend(works: &[Work]) -> Option<&Work> {
-        works
-            .iter()
-            .filter(|w| w.status == Status::NotStarted)
-            .choose(&mut rand::rng())
-    }
-    */
 }

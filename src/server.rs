@@ -17,6 +17,8 @@ pub async fn run() -> Result<()> {
         .route("/list", get(handlers::list))
         .route("/recommendations", get(handlers::recommendations))
         .route("/works", post(handlers::create_work))
+        .route("/register", post(handlers::register))
+        .route("/login", post(handlers::login))
         .with_state(pool);
 
     // TCPリスナの作成

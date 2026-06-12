@@ -1,4 +1,5 @@
 use crate::ai;
+use crate::auth;
 use crate::db;
 use crate::error::AppError;
 use crate::models::{MediaType, Status, Work};
@@ -145,5 +146,69 @@ pub async fn create_work(
     db::insert_work(&pool, &work, body.user_id, &body.status).await?;
     Ok(Json(MessageResponse {
         message: "登録しました".to_string(),
+    }))
+}
+
+// 新規ユーザ登録用
+#[derive(Deserialize)]
+pub struct RegisterRequest {
+    pub name: String,
+    pub email: String,
+    pub password: String,
+}
+
+// ユーザ新規登録（パスワードはハッシュ化して保存）
+pub async fn register(
+    State(pool): State<PgPool>,
+    Json(body): Json<RegisterRequest>,
+) -> Result<Json<MessageResponse>, AppError> {
+    // 平文のパスワードをハッシュ化
+    let password_hash = auth::hash_password(&body.password)?;
+
+    db::register(&pool, &body.name, &body.email, &password_hash)
+        .await
+        .map_err(|e| {
+            if let Some(db_err) = e.as_database_error() {
+                if db_err.is_unique_violation() {
+                    return AppError::Conflict(
+                        "このメールアドレスは既に登録されています".to_string(),
+                    );
+                }
+            }
+            AppError::Database(e)
+        })?;
+
+    Ok(Json(MessageResponse {
+        message: "ユーザを登録しました".to_string(),
+    }))
+}
+
+// ログイン用
+#[derive(Deserialize)]
+pub struct LoginRequest {
+    pub email: String,
+    pub password: String,
+}
+
+// メールアドレスとパスワードを照合
+// 成功/失敗を返すだけで，トークン発行などのセッション管理は別途実装
+pub async fn login(
+    State(pool): State<PgPool>,
+    Json(body): Json<LoginRequest>,
+) -> Result<Json<MessageResponse>, AppError> {
+    let invalid = || AppError::Unauthorized("メールアドレスまたはパスワードが違います".to_string());
+
+    let user = db::find_user_by_email(&pool, &body.email)
+        .await?
+        .ok_or_else(invalid)?;
+
+    let password_hash = user.password_hash.ok_or_else(invalid)?;
+
+    if !auth::verify_password(&body.password, &password_hash) {
+        return Err(invalid());
+    }
+
+    Ok(Json(MessageResponse {
+        message: "ログインしました".to_string(),
     }))
 }

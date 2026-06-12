@@ -11,6 +11,10 @@ pub enum AppError {
     NotFound(String),
     // クライアントの入力が不正なときのエラー
     BadRequest(String),
+    // 認証に失敗したときのエラー
+    Unauthorized(String),
+    // 既に存在するメールアドレスなど競合したときのエラー
+    Conflict(String),
     // AIなどの外部API連携で発生したエラー
     External(String),
 }
@@ -34,6 +38,8 @@ impl IntoResponse for AppError {
             }
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.clone()),
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
+            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
+            AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
             AppError::External(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
         };
         (status, Json(ErrorBody { message })).into_response()
