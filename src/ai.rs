@@ -14,7 +14,19 @@ pub async fn recommend_from_list(
     Ok(text)
 }
 
-// プロンプト組み立て
+// 外部レコメンド機能
+// 将来的にはリストにすぐぶち込めるように連携させたい
+pub async fn recommend_new(
+    completed: Vec<String>, 
+    not_started: Vec<String>
+) -> Result<String, AppError> {
+    let prompt = build_new_prompt(&completed, &not_started);
+    let response_json = request_completion(&prompt).await?;
+    let text = extract_text(&response_json)?;
+    Ok(text)
+}
+
+// プロンプト組み立て(内部)
 // 非同期処理でもなければ今のところai.rsで完結しているため，pubにする必要なし
 fn build_prompt(completed: &[String], not_started: &[String]) -> String {
     let completed_works = completed.join("、");
@@ -32,13 +44,32 @@ fn build_prompt(completed: &[String], not_started: &[String]) -> String {
       )
 }
 
+// プロンプト組み立て(外部) 
+// 最終的には10個とか提案させてリストにぶち込みたい
+fn build_new_prompt(completed: &[String], not_started: &[String]) -> String {
+    let completed_works = completed.join("、");
+    let not_started_works = not_started.join("、");
+
+    format!(
+          "以下はユーザーが視聴・読了済みの作品です：
+          {completed_works}
+          
+          以下はユーザーが未視聴の作品です
+          {not_started_works}
+
+          視聴済み作品,未視聴作品からユーザーの好みを分析し，このリストには含まれていない世の中全てのあらゆるジャンルの作品から，
+          新しく触れるべきお勧めの作品を1つ提案してください。
+          作品名と理由を簡潔に教えてください。"
+      )
+}
+
 // ClaudeAPIへリクエストを送る
 async fn request_completion(prompt: &str) -> Result<serde_json::Value, AppError> {
     let api_key = var("ANTHROPIC_API_KEY")
         .map_err(|_| AppError::External("ANTHROPIC_API_KEYが設定されていません".to_string()))?;
 
     let body = json!({
-        "model": "claude-sonnet-4-6",
+        "model": "claude-haiku-4-5-20251001",
         "max_tokens": 1024,
         "messages": [{"role": "user", "content": prompt}]
     });
@@ -78,9 +109,6 @@ fn extract_text(json: &serde_json::Value) -> Result<String, AppError> {
         .to_string();
     Ok(text)
 }
-
-// 外部レコメンド機能
-pub async fn recommend_new() {}
 
 #[cfg(test)]
 mod tests {

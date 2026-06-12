@@ -1,6 +1,7 @@
 use crate::db;
 use crate::error::AppError;
 use crate::models::{MediaType, Status, Work};
+use crate::ai;
 // use anyhow::Ok;
 use axum::{extract::Json, extract::Query, extract::State};
 use serde::{Deserialize, Serialize};
@@ -42,6 +43,7 @@ pub enum Strategy {
     #[default]
     Random,
     Ai,
+    NewAi,
 }
 
 #[derive(Deserialize)]
@@ -60,6 +62,7 @@ pub async fn recommendations(
     match query.strategy {
         Strategy::Random => recommend_random(&pool, query.user_id).await,
         Strategy::Ai => recommend_ai(&pool, query.user_id).await,
+        Strategy::NewAi => recommend_external(&pool, query.user_id).await,
     }
 }
 
@@ -73,15 +76,33 @@ async fn recommend_random(pool: &PgPool, user_id: i32) -> Result<Json<MessageRes
     }
 }
 
-// AIが作品をレコメンドする機能（準備中）
+// AIが既存の作品リストの中から作品をレコメンドする機能
 async fn recommend_ai(pool: &PgPool, user_id: i32) -> Result<Json<MessageResponse>, AppError> {
     // 作品一覧取得
-    let _completed_work_list = db::get_list(pool, user_id, Some("Completed")).await?;
-    let _notstarted_work_list = db::get_list(pool, user_id, Some("NotStarted")).await?;
+    let completed_work_list = db::get_list(pool, user_id, Some("Completed")).await?;
+    let notstarted_work_list = db::get_list(pool, user_id, Some("NotStarted")).await?;
+
+    // 関数呼び出し
+    let response_messeage = ai::recommend_from_list (completed_work_list, notstarted_work_list).await?;
 
     // APIを呼ぶ
     Ok(Json(MessageResponse {
-        message: "準備中".to_string(),
+        message: response_messeage,
+    }))
+}
+
+// AIが新たな作品をレコメンドする機能
+async fn recommend_external(pool: &PgPool, user_id: i32) -> Result<Json<MessageResponse>, AppError> {
+     // 作品一覧取得
+    let completed_work_list = db::get_list(pool, user_id, Some("Completed")).await?;
+    let notstarted_work_list = db::get_list(pool, user_id, Some("NotStarted")).await?;
+
+    // 関数呼び出し
+    let response_messeage = ai::recommend_new (completed_work_list, notstarted_work_list).await?;
+
+    // APIを呼ぶ
+    Ok(Json(MessageResponse {
+        message: response_messeage,
     }))
 }
 
