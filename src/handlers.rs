@@ -1,12 +1,10 @@
+use crate::ai;
 use crate::db;
 use crate::error::AppError;
 use crate::models::{MediaType, Status, Work};
-use crate::ai;
-// use anyhow::Ok;
 use axum::{extract::Json, extract::Query, extract::State};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use std::option::Option;
 
 #[derive(Deserialize)]
 pub struct ListQuery {
@@ -31,7 +29,14 @@ pub async fn list(
     State(pool): State<PgPool>,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<String>>, AppError> {
-    let titles = db::get_list(&pool, query.user_id, query.status.as_deref()).await?;
+    // クエリのstatusはStatusへパースして検証
+    let status = query
+        .status
+        .as_deref()
+        .map(|s| s.parse::<Status>())
+        .transpose()
+        .map_err(|_| AppError::BadRequest("不正なstatusです".to_string()))?;
+    let titles = db::get_list(&pool, query.user_id, status.as_ref()).await?;
     Ok(Json(titles))
 }
 
@@ -79,11 +84,12 @@ async fn recommend_random(pool: &PgPool, user_id: i32) -> Result<Json<MessageRes
 // AIが既存の作品リストの中から作品をレコメンドする機能
 async fn recommend_ai(pool: &PgPool, user_id: i32) -> Result<Json<MessageResponse>, AppError> {
     // 作品一覧取得
-    let completed_work_list = db::get_list(pool, user_id, Some("Completed")).await?;
-    let notstarted_work_list = db::get_list(pool, user_id, Some("NotStarted")).await?;
+    let completed_work_list = db::get_list(pool, user_id, Some(&Status::Completed)).await?;
+    let notstarted_work_list = db::get_list(pool, user_id, Some(&Status::NotStarted)).await?;
 
     // 関数呼び出し
-    let response_messeage = ai::recommend_from_list (completed_work_list, notstarted_work_list).await?;
+    let response_messeage =
+        ai::recommend_from_list(completed_work_list, notstarted_work_list).await?;
 
     // APIを呼ぶ
     Ok(Json(MessageResponse {
@@ -92,13 +98,16 @@ async fn recommend_ai(pool: &PgPool, user_id: i32) -> Result<Json<MessageRespons
 }
 
 // AIが新たな作品をレコメンドする機能
-async fn recommend_external(pool: &PgPool, user_id: i32) -> Result<Json<MessageResponse>, AppError> {
-     // 作品一覧取得
-    let completed_work_list = db::get_list(pool, user_id, Some("Completed")).await?;
-    let notstarted_work_list = db::get_list(pool, user_id, Some("NotStarted")).await?;
+async fn recommend_external(
+    pool: &PgPool,
+    user_id: i32,
+) -> Result<Json<MessageResponse>, AppError> {
+    // 作品一覧取得
+    let completed_work_list = db::get_list(pool, user_id, Some(&Status::Completed)).await?;
+    let notstarted_work_list = db::get_list(pool, user_id, Some(&Status::NotStarted)).await?;
 
     // 関数呼び出し
-    let response_messeage = ai::recommend_new (completed_work_list, notstarted_work_list).await?;
+    let response_messeage = ai::recommend_new(completed_work_list, notstarted_work_list).await?;
 
     // APIを呼ぶ
     Ok(Json(MessageResponse {

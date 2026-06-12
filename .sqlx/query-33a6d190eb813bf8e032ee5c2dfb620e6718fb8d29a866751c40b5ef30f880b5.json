@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO user_works (user_id, work_id, status) VALUES ($1, $2, $3)\n         ON CONFLICT (user_id, work_id) DO UPDATE SET status = EXCLUDED.status",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "33a6d190eb813bf8e032ee5c2dfb620e6718fb8d29a866751c40b5ef30f880b5"
+}

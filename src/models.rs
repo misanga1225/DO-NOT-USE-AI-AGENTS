@@ -41,19 +41,6 @@ impl fmt::Display for ParseError {
 }
 impl std::error::Error for ParseError {}
 
-impl FromStr for MediaType {
-    type Err = ParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Novel" => Ok(MediaType::Novel),
-            "Anime" => Ok(MediaType::Anime),
-            "Manga" => Ok(MediaType::Manga),
-            "Game" => Ok(MediaType::Game),
-            _ => Err(ParseError),
-        }
-    }
-}
-
 impl FromStr for Status {
     type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -92,13 +79,6 @@ impl Status {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_mediatype_from_str() {
-        assert_eq!(MediaType::from_str("Novel"), Ok(MediaType::Novel));
-        assert_eq!(MediaType::from_str("Game"), Ok(MediaType::Game));
-        assert_eq!(MediaType::from_str("InvalidStr"), Err(ParseError));
-    }
 
     #[test]
     fn test_status_from_str() {

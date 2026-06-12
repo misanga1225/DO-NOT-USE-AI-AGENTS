@@ -2,6 +2,13 @@ use crate::error::AppError;
 use reqwest::Client;
 use serde_json::json;
 use std::env::var;
+use std::sync::OnceLock;
+
+// reqwest::Clientはコネクションプールを持つため使い回す
+fn http_client() -> &'static Client {
+    static CLIENT: OnceLock<Client> = OnceLock::new();
+    CLIENT.get_or_init(Client::new)
+}
 
 // 内部レコメンド機能
 pub async fn recommend_from_list(
@@ -17,8 +24,8 @@ pub async fn recommend_from_list(
 // 外部レコメンド機能
 // 将来的にはリストにすぐぶち込めるように連携させたい
 pub async fn recommend_new(
-    completed: Vec<String>, 
-    not_started: Vec<String>
+    completed: Vec<String>,
+    not_started: Vec<String>,
 ) -> Result<String, AppError> {
     let prompt = build_new_prompt(&completed, &not_started);
     let response_json = request_completion(&prompt).await?;
@@ -27,7 +34,6 @@ pub async fn recommend_new(
 }
 
 // プロンプト組み立て(内部)
-// 非同期処理でもなければ今のところai.rsで完結しているため，pubにする必要なし
 fn build_prompt(completed: &[String], not_started: &[String]) -> String {
     let completed_works = completed.join("、");
     let not_started_works = not_started.join("、");
@@ -44,7 +50,7 @@ fn build_prompt(completed: &[String], not_started: &[String]) -> String {
       )
 }
 
-// プロンプト組み立て(外部) 
+// プロンプト組み立て(外部)
 // 最終的には10個とか提案させてリストにぶち込みたい
 fn build_new_prompt(completed: &[String], not_started: &[String]) -> String {
     let completed_works = completed.join("、");
@@ -53,7 +59,7 @@ fn build_new_prompt(completed: &[String], not_started: &[String]) -> String {
     format!(
           "以下はユーザーが視聴・読了済みの作品です：
           {completed_works}
-          
+
           以下はユーザーが未視聴の作品です
           {not_started_works}
 
@@ -74,8 +80,7 @@ async fn request_completion(prompt: &str) -> Result<serde_json::Value, AppError>
         "messages": [{"role": "user", "content": prompt}]
     });
 
-    let client = Client::new();
-    let response = client
+    let response = http_client()
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", &api_key)
         .header("anthropic-version", "2023-06-01")

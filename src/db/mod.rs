@@ -73,7 +73,7 @@ pub async fn insert_work(
 pub async fn get_list(
     pool: &PgPool,
     user_id: i32,
-    status: Option<&str>,
+    status: Option<&Status>,
 ) -> Result<Vec<String>, sqlx::Error> {
     if let Some(status) = status {
         sqlx::query_scalar!(
@@ -82,7 +82,7 @@ pub async fn get_list(
              JOIN user_works uw ON uw.work_id = w.id
              WHERE uw.user_id = $1 AND uw.status = $2",
             user_id,
-            status
+            status.as_str()
         )
         .fetch_all(pool)
         .await

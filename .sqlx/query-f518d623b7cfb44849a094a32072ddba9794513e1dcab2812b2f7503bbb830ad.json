@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.title\n             FROM works w\n             JOIN user_works uw ON uw.work_id = w.id\n             WHERE uw.user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "title",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f518d623b7cfb44849a094a32072ddba9794513e1dcab2812b2f7503bbb830ad"
+}
