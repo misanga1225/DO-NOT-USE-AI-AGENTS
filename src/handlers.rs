@@ -67,8 +67,8 @@ pub async fn recommendations(
 ) -> Result<Json<MessageResponse>, AppError> {
     match query.strategy {
         Strategy::Random => recommend_random(&pool, query.user_id).await,
-        Strategy::Ai => recommend_ai(&pool, query.user_id).await,
-        Strategy::NewAi => recommend_external(&pool, query.user_id).await,
+        Strategy::Ai => recommend_with_ai(&pool, query.user_id, ai::RecommendMode::FromList).await,
+        Strategy::NewAi => recommend_with_ai(&pool, query.user_id, ai::RecommendMode::New).await,
     }
 }
 
@@ -82,33 +82,18 @@ async fn recommend_random(pool: &PgPool, user_id: i32) -> Result<Json<MessageRes
     }
 }
 
-// AIが既存の作品リストの中から作品をレコメンドする機能
-async fn recommend_ai(pool: &PgPool, user_id: i32) -> Result<Json<MessageResponse>, AppError> {
-    // 作品一覧取得
-    let completed_work_list = db::get_list(pool, user_id, Some(&Status::Completed)).await?;
-    let notstarted_work_list = db::get_list(pool, user_id, Some(&Status::NotStarted)).await?;
-
-    // 関数呼び出し
-    let response_messeage =
-        ai::recommend_from_list(completed_work_list, notstarted_work_list).await?;
-
-    // APIを呼ぶ
-    Ok(Json(MessageResponse {
-        message: response_messeage,
-    }))
-}
-
-// AIが新たな作品をレコメンドする機能
-async fn recommend_external(
+// AIが作品をレコメンドする機能
+async fn recommend_with_ai(
     pool: &PgPool,
     user_id: i32,
+    mode: ai::RecommendMode
 ) -> Result<Json<MessageResponse>, AppError> {
     // 作品一覧取得
     let completed_work_list = db::get_list(pool, user_id, Some(&Status::Completed)).await?;
     let notstarted_work_list = db::get_list(pool, user_id, Some(&Status::NotStarted)).await?;
 
     // 関数呼び出し
-    let response_messeage = ai::recommend_new(completed_work_list, notstarted_work_list).await?;
+    let response_messeage =ai::recommend(completed_work_list, notstarted_work_list, mode).await?;
 
     // APIを呼ぶ
     Ok(Json(MessageResponse {
