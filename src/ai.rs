@@ -10,34 +10,33 @@ fn http_client() -> &'static Client {
     CLIENT.get_or_init(Client::new)
 }
 
-// 内部レコメンド機能
-pub async fn recommend_from_list(
+pub enum RecommendMode {
+    FromList,
+    New,
+}
+
+// レコメンド機能
+pub async fn recommend(
     completed: Vec<String>,
     not_started: Vec<String>,
+    mode: RecommendMode
 ) -> Result<String, AppError> {
-    let prompt = build_prompt(&completed, &not_started);
+    let prompt = build_prompt(&completed, &not_started, &mode);
     let response_json = request_completion(&prompt).await?;
     let text = extract_text(&response_json)?;
     Ok(text)
 }
 
-// 外部レコメンド機能
-// 将来的にはリストにすぐぶち込めるように連携させたい
-pub async fn recommend_new(
-    completed: Vec<String>,
-    not_started: Vec<String>,
-) -> Result<String, AppError> {
-    let prompt = build_new_prompt(&completed, &not_started);
-    let response_json = request_completion(&prompt).await?;
-    let text = extract_text(&response_json)?;
-    Ok(text)
-}
-
-// プロンプト組み立て(内部)
-fn build_prompt(completed: &[String], not_started: &[String]) -> String {
+// プロンプト組み立て
+fn build_prompt(completed: &[String], not_started: &[String], mode: &RecommendMode) -> String {
     let completed_works = completed.join("、");
     let not_started_works = not_started.join("、");
 
+    let instruction = match mode {
+        RecommendMode::FromList => "未視聴リストの中から次に触れるべき作品を提示してください。",
+        RecommendMode::New => "このリストに含まれていない新たな作品を1つ提示してください。",
+    };
+        
     format!(
           "以下はユーザーが視聴・読了済みの作品です：
           {completed_works}
@@ -45,26 +44,8 @@ fn build_prompt(completed: &[String], not_started: &[String]) -> String {
           以下はまだ手をつけていない作品です：
           {not_started_works}
 
-          視聴済み作品から好みを読み取り、未視聴リストの中から次に楽しむべき作品を1つ選んでください。
-          作品名と理由を簡潔に教えてください。"
-      )
-}
-
-// プロンプト組み立て(外部)
-// 最終的には10個とか提案させてリストにぶち込みたい
-fn build_new_prompt(completed: &[String], not_started: &[String]) -> String {
-    let completed_works = completed.join("、");
-    let not_started_works = not_started.join("、");
-
-    format!(
-          "以下はユーザーが視聴・読了済みの作品です：
-          {completed_works}
-
-          以下はユーザーが未視聴の作品です
-          {not_started_works}
-
-          視聴済み作品,未視聴作品からユーザーの好みを分析し，このリストには含まれていない世の中全てのあらゆるジャンルの作品から，
-          新しく触れるべきお勧めの作品を1つ提案してください。
+          これらの作品リストから好みを読み取り、
+          {instruction}
           作品名と理由を簡潔に教えてください。"
       )
 }
