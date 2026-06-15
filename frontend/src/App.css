@@ -182,3 +182,91 @@
     border-right-color: var(--border);
   }
 }
+
+/* --- 認証画面・ダッシュボード用のシンプルなスタイル --- */
+.auth {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+.dashboard {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  text-align: left;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+  text-align: left;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  font-size: 16px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2028;
+}
+
+button {
+  font: inherit;
+  font-size: 16px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 14px;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.msg {
+  color: #0a7d2c;
+}
+
+.err {
+  color: #d33;
+}
