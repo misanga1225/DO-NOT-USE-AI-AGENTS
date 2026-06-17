@@ -92,6 +92,23 @@ async fn recommend_with_ai(
     let completed_work_list = db::get_list(pool, user_id, Some(&Status::Completed)).await?;
     let notstarted_work_list = db::get_list(pool, user_id, Some(&Status::NotStarted)).await?;
 
+    // 0件の時の処理
+    match mode {
+        ai::RecommendMode::FromList => {
+            if notstarted_work_list.is_empty() {
+                return Ok(Json(MessageResponse {
+                    message: "未視聴作品がないためレコメンドできません".to_string(),
+                }));
+            }
+        }
+        ai::RecommendMode::New => {
+            if completed_work_list.is_empty() {
+                return Ok(Json(MessageResponse {
+                    message: "視聴済み作品がないためレコメンドできません".to_string(),
+                }));
+            }
+        }
+    }
     // 関数呼び出し
     let response_messeage =ai::recommend(completed_work_list, notstarted_work_list, mode).await?;
 
