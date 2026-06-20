@@ -19,7 +19,7 @@ pub enum RecommendMode {
 pub async fn recommend(
     completed: Vec<String>,
     not_started: Vec<String>,
-    mode: RecommendMode
+    mode: RecommendMode,
 ) -> Result<String, AppError> {
     let prompt = build_prompt(&completed, &not_started, &mode);
     let response_json = request_completion(&prompt).await?;
@@ -36,9 +36,9 @@ fn build_prompt(completed: &[String], not_started: &[String], mode: &RecommendMo
         RecommendMode::FromList => "未視聴リストの中から次に触れるべき作品を提示してください。",
         RecommendMode::New => "このリストに含まれていない新たな作品を1つ提示してください。",
     };
-        
+
     format!(
-          "以下はユーザーが視聴・読了済みの作品です：
+        "以下はユーザーが視聴・読了済みの作品です：
           {completed_works}
 
           以下はまだ手をつけていない作品です：
@@ -47,7 +47,7 @@ fn build_prompt(completed: &[String], not_started: &[String], mode: &RecommendMo
           これらの作品リストから好みを読み取り、
           {instruction}
           作品名と理由を簡潔に教えてください。"
-      )
+    )
 }
 
 // ClaudeAPIへリクエストを送る

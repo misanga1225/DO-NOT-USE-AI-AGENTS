@@ -1,5 +1,6 @@
 use crate::ai;
 use crate::auth;
+use crate::auth::AuthUser;
 use crate::db;
 use crate::error::AppError;
 use crate::models::{MediaType, Status, Work};
@@ -11,7 +12,6 @@ use sqlx::PgPool;
 
 #[derive(Deserialize)]
 pub struct ListQuery {
-    user_id: i32,
     status: Option<String>,
 }
 
@@ -30,16 +30,16 @@ pub async fn root() -> Json<MessageResponse> {
 // 作品のタイトル一覧を表示
 pub async fn list(
     State(pool): State<PgPool>,
+    user: AuthUser,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Vec<String>>, AppError> {
-    // クエリのstatusはStatusへパースして検証
     let status = query
         .status
         .as_deref()
         .map(|s| s.parse::<Status>())
         .transpose()
         .map_err(|_| AppError::BadRequest("不正なstatusです".to_string()))?;
-    let titles = db::get_list(&pool, query.user_id, status.as_ref()).await?;
+    let titles = db::get_list(&pool, user.user_id, status.as_ref()).await?;
     Ok(Json(titles))
 }
 
@@ -56,7 +56,6 @@ pub enum Strategy {
 
 #[derive(Deserialize)]
 pub struct RecommendQuery {
-    user_id: i32,
     #[serde(default)]
     strategy: Strategy,
 }
@@ -65,12 +64,13 @@ pub struct RecommendQuery {
 // strategyでおすすめ法を振り分け
 pub async fn recommendations(
     State(pool): State<PgPool>,
+    user: AuthUser,
     Query(query): Query<RecommendQuery>,
 ) -> Result<Json<MessageResponse>, AppError> {
     match query.strategy {
-        Strategy::Random => recommend_random(&pool, query.user_id).await,
-        Strategy::Ai => recommend_with_ai(&pool, query.user_id, ai::RecommendMode::FromList).await,
-        Strategy::NewAi => recommend_with_ai(&pool, query.user_id, ai::RecommendMode::New).await,
+        Strategy::Random => recommend_random(&pool, user.user_id).await,
+        Strategy::Ai => recommend_with_ai(&pool, user.user_id, ai::RecommendMode::FromList).await,
+        Strategy::NewAi => recommend_with_ai(&pool, user.user_id, ai::RecommendMode::New).await,
     }
 }
 
@@ -123,7 +123,6 @@ async fn recommend_with_ai(
 // worksエンドポイントの実装
 #[derive(Deserialize)]
 pub struct WorkRequest {
-    pub user_id: i32,
     pub title: String,
     pub author: String,
     pub description: String,
@@ -136,6 +135,7 @@ pub struct WorkRequest {
 // 受け取ったデータをDBに保存する処理
 pub async fn create_work(
     State(pool): State<PgPool>,
+    user: AuthUser,
     Json(body): Json<WorkRequest>,
 ) -> Result<Json<MessageResponse>, AppError> {
     let work = Work {
@@ -147,7 +147,7 @@ pub async fn create_work(
         genres: body.genres,
     };
     // DB登録処理呼び出し
-    db::insert_work(&pool, &work, body.user_id, &body.status).await?;
+    db::insert_work(&pool, &work, user.user_id, &body.status).await?;
     Ok(Json(MessageResponse {
         message: "登録しました".to_string(),
     }))
@@ -227,4 +227,15 @@ pub async fn login(
             message: "ログインしました".to_string(),
         }),
     ))
+}
+
+// token Cookieを削除してログアウト
+pub async fn logout(jar: CookieJar) -> (CookieJar, Json<MessageResponse>) {
+    let cookie = Cookie::build(("token", "")).path("/").build();
+    (
+        jar.remove(cookie),
+        Json(MessageResponse {
+            message: "ログアウトしました".to_string(),
+        }),
+    )
 }
