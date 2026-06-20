@@ -1,7 +1,11 @@
 use crate::error::AppError;
+use crate::state::AppState;
 use argon2::password_hash::{SaltString, rand_core::OsRng};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use jsonwebtoken::{EncodingKey, Header, encode};
+use axum::extract::FromRequestParts;
+use axum::http::request::Parts;
+use axum_extra::extract::cookie::CookieJar;
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -46,4 +50,44 @@ pub fn create_token(user_id: i32, secret: &str) -> Result<String, AppError> {
         &EncodingKey::from_secret(secret.as_bytes()),
     )
     .map_err(|e| AppError::External(format!("トークンの発行に失敗しました: {e}")))
+}
+
+pub struct AuthUser {
+    pub user_id: i32,
+}
+
+impl FromRequestParts<AppState> for AuthUser {
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let unauthorized = || AppError::Unauthorized("認証が必要です".to_string());
+
+        // リクエストからCookieを取り出す
+        let jar = CookieJar::from_request_parts(parts, state)
+            .await
+            .map_err(|_| unauthorized())?;
+
+        // token Cookieを取得
+        let token = jar
+            .get("token")
+            .ok_or_else(unauthorized)?
+            .value()
+            .to_string();
+
+        // 署名と有効期限を検証し，中身を取り出す
+        let data = decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret(state.jwt_secret.as_bytes()),
+            &Validation::default(),
+        )
+        .map_err(|_| unauthorized())?;
+
+        // 検証済みのuser_idを返す
+        Ok(AuthUser {
+            user_id: data.claims.sub,
+        })
+    }
 }

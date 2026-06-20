@@ -29,6 +29,7 @@ pub async fn run() -> Result<()> {
         .route("/works", post(handlers::create_work))
         .route("/register", post(handlers::register))
         .route("/login", post(handlers::login))
+        .route("/logout", post(handlers::logout))
         .with_state(state);
 
     // TCPリスナの作成
