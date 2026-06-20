@@ -3,7 +3,9 @@ use crate::auth;
 use crate::db;
 use crate::error::AppError;
 use crate::models::{MediaType, Status, Work};
+use crate::state::AppState;
 use axum::{extract::Json, extract::Query, extract::State};
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -86,7 +88,7 @@ async fn recommend_random(pool: &PgPool, user_id: i32) -> Result<Json<MessageRes
 async fn recommend_with_ai(
     pool: &PgPool,
     user_id: i32,
-    mode: ai::RecommendMode
+    mode: ai::RecommendMode,
 ) -> Result<Json<MessageResponse>, AppError> {
     // 作品一覧取得
     let completed_work_list = db::get_list(pool, user_id, Some(&Status::Completed)).await?;
@@ -110,7 +112,7 @@ async fn recommend_with_ai(
         }
     }
     // 関数呼び出し
-    let response_messeage =ai::recommend(completed_work_list, notstarted_work_list, mode).await?;
+    let response_messeage = ai::recommend(completed_work_list, notstarted_work_list, mode).await?;
 
     // APIを呼ぶ
     Ok(Json(MessageResponse {
@@ -192,15 +194,15 @@ pub struct LoginRequest {
     pub password: String,
 }
 
-// メールアドレスとパスワードを照合
-// 成功/失敗を返すだけで，トークン発行などのセッション管理は別途実装
+// メールアドレスとパスワードを照合し，成功したらJWTをCookieに発行
 pub async fn login(
-    State(pool): State<PgPool>,
+    State(state): State<AppState>,
+    jar: CookieJar,
     Json(body): Json<LoginRequest>,
-) -> Result<Json<MessageResponse>, AppError> {
+) -> Result<(CookieJar, Json<MessageResponse>), AppError> {
     let invalid = || AppError::Unauthorized("メールアドレスまたはパスワードが違います".to_string());
 
-    let user = db::find_user_by_email(&pool, &body.email)
+    let user = db::find_user_by_email(&state.pool, &body.email)
         .await?
         .ok_or_else(invalid)?;
 
@@ -210,7 +212,19 @@ pub async fn login(
         return Err(invalid());
     }
 
-    Ok(Json(MessageResponse {
-        message: "ログインしました".to_string(),
-    }))
+    // JWTを発行しhttpOnly Cookieに載せて返す
+    let token = auth::create_token(user.id, &state.jwt_secret)?;
+    let cookie = Cookie::build(("token", token))
+        .http_only(true) // JSから読めないようにする
+        .same_site(SameSite::Lax)
+        .secure(false) // 本番(HTTPS)ではtrueにする
+        .path("/")
+        .build();
+
+    Ok((
+        jar.add(cookie),
+        Json(MessageResponse {
+            message: "ログインしました".to_string(),
+        }),
+    ))
 }
