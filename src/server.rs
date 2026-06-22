@@ -2,6 +2,7 @@ use crate::db;
 use crate::handlers;
 use crate::state::AppState;
 use anyhow::Result;
+use axum::routing::patch;
 use axum::{Router, routing::get, routing::post};
 use std::env;
 use std::sync::Arc;
@@ -27,6 +28,7 @@ pub async fn run() -> Result<()> {
         .route("/list", get(handlers::list))
         .route("/recommendations", get(handlers::recommendations))
         .route("/works", post(handlers::create_work))
+        .route("/works/:id", patch(handlers::update_work_status))
         .route("/register", post(handlers::register))
         .route("/login", post(handlers::login))
         .route("/logout", post(handlers::logout))
