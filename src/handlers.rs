@@ -5,7 +5,7 @@ use crate::db;
 use crate::error::AppError;
 use crate::models::{MediaType, Status, Work};
 use crate::state::AppState;
-use axum::{extract::Json, extract::Query, extract::State};
+use axum::{extract::Json, extract::Query, extract::State, extract::Path};
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -150,6 +150,27 @@ pub async fn create_work(
     db::insert_work(&pool, &work, user.user_id, &body.status).await?;
     Ok(Json(MessageResponse {
         message: "登録しました".to_string(),
+    }))
+}
+
+// ステータス更新処理
+#[derive(Deserialize)]
+pub struct UpdateStatusRequest {
+    pub status: Status,
+}
+
+pub async fn update_work_status(
+    State(pool): State<PgPool>,
+    user: AuthUser,
+    Path(work_id): Path<i32>,
+    Json(body): Json<UpdateStatusRequest>,
+) -> Result<Json<MessageResponse>, AppError> {
+    let found = db::update_status(&pool, user.user_id, work_id, &body.status).await?;
+    if !found {
+        return Err(AppError::NotFound("作品が見つかりません".to_string()));
+    }
+    Ok(Json(MessageResponse {
+        message: "ステータスを更新しました".to_string(),
     }))
 }
 

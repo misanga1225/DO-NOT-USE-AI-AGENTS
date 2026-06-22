@@ -1,5 +1,6 @@
 use crate::models::{Status, Work};
 use sqlx::PgPool;
+use sqlx::pool::maybe::MaybePoolConnection::PoolConnection;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 
@@ -110,6 +111,20 @@ pub async fn picked_random(pool: &PgPool, user_id: i32) -> Result<Option<String>
     )
     .fetch_optional(pool)
     .await
+}
+
+// 作品のステータス変更
+pub async fn update_status(pool: &PgPool, user_id: i32, work_id: i32, status: &Status) -> Result<bool, sqlx::Error>{
+    Ok(sqlx::query!(
+        "UPDATE user_works SET status = $1 WHERE user_id = $2 AND work_id = $3",
+        status.as_str(),
+        user_id,
+        work_id,
+    )
+    .execute(pool)
+    .await?
+    .rows_affected()
+        > 0)
 }
 
 // ログイン照合に必要な最小限のユーザ情報
