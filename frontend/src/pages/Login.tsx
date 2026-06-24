@@ -28,7 +28,8 @@ export default function Login({ onLoggedIn, onGoRegister }: Props) {
   };
 
   return (
-    <div>
+    <div className="panel">
+      <p className="section-tag">// Authenticate</p>
       <h2>ログイン</h2>
       <form onSubmit={handleSubmit}>
         <label>
@@ -56,7 +57,7 @@ export default function Login({ onLoggedIn, onGoRegister }: Props) {
 
       {error && <p className="err">{error}</p>}
 
-      <p>
+      <p className="switch-line">
         アカウントがない方は{" "}
         <button className="link-button" onClick={onGoRegister}>
           新規登録

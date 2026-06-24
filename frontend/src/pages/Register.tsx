@@ -34,7 +34,8 @@ export default function Register({ onGoLogin }: Props) {
   };
 
   return (
-    <div>
+    <div className="panel">
+      <p className="section-tag">// Enroll</p>
       <h2>新規登録</h2>
       <form onSubmit={handleSubmit}>
         <label>
@@ -72,7 +73,7 @@ export default function Register({ onGoLogin }: Props) {
       {message && <p className="msg">{message}</p>}
       {error && <p className="err">{error}</p>}
 
-      <p>
+      <p className="switch-line">
         すでにアカウントをお持ちの方は{" "}
         <button className="link-button" onClick={onGoLogin}>
           ログイン

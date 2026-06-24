@@ -1,111 +1,152 @@
+/* =========================================================
+   PSYCHO-PASS × ALTER EGO — 融合テーマ
+   監視システム風HUD（ダーク＋シアン／ハザード）に
+   静謐な余白と漂う粒子を溶かし込む
+   ========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&family=Share+Tech+Mono&display=swap');
+
 :root {
-  --text: #1f2028;
-  --text-h: #0a7ea4;
-  --bg: #ffffff;
-  --border: #d0d7de;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* 背景 */
+  --bg: #03060a;
+  --panel: rgba(8, 17, 26, 0.72);
+  --panel-solid: #07101a;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* シビュラ・シアン（PASS／安全色） */
+  --cyan: #19e6ff;
+  --cyan-soft: rgba(25, 230, 255, 0.5);
+  --cyan-dim: rgba(25, 230, 255, 0.14);
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  /* ハザード（潜在犯／警告色） */
+  --hazard: #ff2d6b;
+  --hazard-soft: rgba(255, 45, 107, 0.55);
+  --ok: #46f0a0;
+
+  --text: #d6ecf3;
+  --text-dim: #6f8a96;
+  --border: rgba(25, 230, 255, 0.18);
+  --border-strong: rgba(25, 230, 255, 0.45);
+
+  --hud: 'Share Tech Mono', ui-monospace, Consolas, monospace;
+  --display: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
+  --sans: system-ui, 'Segoe UI', 'Hiragino Kaku Gothic ProN',
+    'Yu Gothic', Meiryo, sans-serif;
+  --serif: 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
+
+  font: 17px/1.65 var(--sans);
+  letter-spacing: 0.2px;
   color: var(--text);
   background: var(--bg);
+  color-scheme: dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #00ddff;
-    --text-h: #00ddff;
-    --bg: #000000;
-    --border: #00d6f7;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  background:
+    radial-gradient(1200px 720px at 72% -12%, rgba(25, 230, 255, 0.1), transparent 60%),
+    radial-gradient(900px 620px at 8% 112%, rgba(255, 45, 107, 0.07), transparent 60%),
+    linear-gradient(180deg, #03060a 0%, #02040a 100%);
+  background-attachment: fixed;
+}
+
+/* 監視グリッド */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(25, 230, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(25, 230, 255, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at 50% 35%, #000 30%, transparent 85%);
+}
+
+/* 走査線（スキャンライン） */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.22) 3px,
+    rgba(0, 0, 0, 0) 4px
+  );
+  opacity: 0.5;
+  animation: scan 8s linear infinite;
+}
+
+@keyframes scan {
+  0% { background-position-y: 0; }
+  100% { background-position-y: 100px; }
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  max-width: 1040px;
+  margin: 0 auto;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border-inline: 1px solid var(--border);
+  box-shadow: inset 0 0 80px rgba(25, 230, 255, 0.05);
 }
 
 h1,
 h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--cyan);
+  margin: 0;
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+  font-size: 40px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 18px rgba(25, 230, 255, 0.45), 0 0 2px rgba(25, 230, 255, 0.8);
+  @media (max-width: 720px) {
+    font-size: 30px;
   }
 }
+
 h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+  font-size: 19px;
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 12px rgba(25, 230, 255, 0.3);
 }
+
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+code {
+  font-family: var(--hud);
+  font-size: 15px;
+  padding: 3px 7px;
+  border-radius: 2px;
+  color: var(--cyan);
+  background: rgba(25, 230, 255, 0.08);
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+::selection {
+  background: rgba(25, 230, 255, 0.3);
+  color: #fff;
+}
+
+/* スクロールバー */
+* {
+  scrollbar-color: var(--border-strong) transparent;
 }

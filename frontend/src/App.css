@@ -1,272 +1,349 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+/* =========================================================
+   PSYCHO-PASS × ALTER EGO — 画面スタイル
+   ========================================================= */
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+/* --- 漂う粒子（ALTER EGO 的な静けさ） --- */
+.particles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-.hero {
+.particles span {
+  position: absolute;
+  bottom: -12px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+  opacity: 0;
+  animation: drift linear infinite;
+}
+
+@keyframes drift {
+  0% { transform: translateY(0); opacity: 0; }
+  12% { opacity: 0.7; }
+  88% { opacity: 0.45; }
+  100% { transform: translateY(-106vh); opacity: 0; }
+}
+
+/* --- 共通レイアウト --- */
+.auth,
+.dashboard {
   position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
-
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
+  z-index: 1;
   width: 100%;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
-
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
-}
-
-/* --- 認証画面・ダッシュボード用のシンプルなスタイル --- */
-.auth {
-  max-width: 420px;
+  max-width: 540px;
   margin: 0 auto;
-  padding: 24px 20px;
+  padding: 40px 24px 56px;
+  box-sizing: border-box;
+  text-align: left;
 }
 
 .dashboard {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 24px 20px;
-  text-align: left;
+  max-width: 680px;
 }
 
+/* --- ブランド／タイトル --- */
+.brand {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.hud-tag {
+  font-family: var(--hud);
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  opacity: 0.75;
+}
+
+.hud-tag::before {
+  content: '▸ ';
+  color: var(--hazard);
+}
+
+.brand-sub {
+  margin-top: 12px;
+  font-family: var(--serif);
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+
+.title-line {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* --- ダッシュボードのヘッダ --- */
 .dashboard-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
 }
 
+.welcome {
+  font-family: var(--hud);
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 14px 0 4px;
+}
+
+.welcome b {
+  color: var(--cyan);
+  font-weight: 400;
+}
+
+/* --- パネル／カード（HUDフレーム） --- */
+.card,
+.panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 22px 22px 24px;
+  margin: 20px 0;
+  backdrop-filter: blur(6px);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 18px 44px -28px rgba(25, 230, 255, 0.55);
+}
+
+/* 角の括弧（シビュラ風フレーム） */
+.card::before,
+.card::after,
+.panel::before,
+.panel::after {
+  content: '';
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-color: var(--cyan);
+  border-style: solid;
+  opacity: 0.85;
+}
+
+.card::before,
+.panel::before {
+  top: -1px;
+  left: -1px;
+  border-width: 2px 0 0 2px;
+}
+
+.card::after,
+.panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 2px 2px 0;
+}
+
+/* --- セクション見出しタグ --- */
+.section-tag {
+  font-family: var(--hud);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--hazard);
+  margin-bottom: 4px;
+}
+
+/* --- フォーム --- */
 form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin: 16px 0;
+  gap: 14px;
+  margin: 18px 0 4px;
   text-align: left;
 }
 
 label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 14px;
+  gap: 6px;
+  font-family: var(--hud);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
 }
 
 input,
 select,
 textarea {
-  font: inherit;
-  font-size: 16px;
-  padding: 8px 10px;
+  font-family: var(--sans);
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  padding: 10px 12px;
+  color: var(--text);
+  background: rgba(2, 9, 14, 0.7);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: #fff;
-  color: #1f2028;
+  border-radius: 2px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #3c525c;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan-soft), 0 0 16px var(--cyan-dim);
+}
+
+select option {
+  background: var(--panel-solid);
+  color: var(--text);
+}
+
+/* --- ボタン --- */
 button {
-  font: inherit;
-  font-size: 16px;
-  padding: 8px 14px;
-  border: none;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
+  font-family: var(--hud);
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  color: var(--cyan);
+  background: linear-gradient(180deg, rgba(25, 230, 255, 0.16), rgba(25, 230, 255, 0.05));
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
   cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+
+button:hover:not(:disabled) {
+  background: rgba(25, 230, 255, 0.24);
+  box-shadow: 0 0 18px var(--cyan-dim);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .link-button {
   background: none;
   border: none;
-  color: var(--accent);
-  cursor: pointer;
-  text-decoration: underline;
   padding: 0;
-  font-size: 14px;
+  font-family: var(--hud);
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: none;
+  color: var(--hazard);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
-.card {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
-  margin: 16px 0;
+.link-button:hover {
+  background: none;
+  box-shadow: none;
+  text-shadow: 0 0 10px var(--hazard-soft);
+}
+
+.switch-line {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* --- リスト（アーカイブ表示） --- */
+.card ul {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+}
+
+.card li {
+  font-family: var(--hud);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--border-strong);
+  background: rgba(25, 230, 255, 0.04);
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.card li::before {
+  content: '› ';
+  color: var(--cyan);
+}
+
+/* --- シビュラ判定（レコメンド結果） --- */
+.readout {
+  margin-top: 14px;
+  padding: 14px 16px;
+  font-family: var(--hud);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+  border-left: 2px solid var(--cyan);
+  background: rgba(25, 230, 255, 0.06);
+  box-shadow: inset 0 0 24px rgba(25, 230, 255, 0.05);
+}
+
+.readout::before {
+  content: 'SIBYL // JUDGMENT';
+  display: block;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--cyan);
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+/* --- メッセージ --- */
+.msg,
+.err {
+  font-family: var(--hud);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-left: 2px solid;
 }
 
 .msg {
-  color: #0a7d2c;
+  color: var(--ok);
+  border-color: var(--ok);
+  background: rgba(70, 240, 160, 0.06);
 }
 
 .err {
-  color: #d33;
+  color: var(--hazard);
+  border-color: var(--hazard);
+  background: rgba(255, 45, 107, 0.07);
+}
+
+.err::before {
+  content: '⚠ ';
 }

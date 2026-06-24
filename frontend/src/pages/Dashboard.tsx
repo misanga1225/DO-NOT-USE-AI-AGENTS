@@ -99,12 +99,17 @@ export default function Dashboard({ email, onLogout }: Props) {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>アニメレコメンド</h1>
+        <div>
+          <p className="hud-tag">Sibyl System // Console</p>
+          <h1>アニメレコメンド</h1>
+        </div>
         <button className="link-button" onClick={onLogout}>
           ログアウト
         </button>
       </header>
-      <p>ようこそ、{email} さん</p>
+      <p className="welcome">
+        AUTHENTICATED INSPECTOR &mdash; <b>{email}</b>
+      </p>
 
       <label>
         ユーザID
@@ -117,6 +122,7 @@ export default function Dashboard({ email, onLogout }: Props) {
 
       {/* 作品一覧 */}
       <section className="card">
+        <p className="section-tag">// 01 Archive</p>
         <h2>作品一覧</h2>
         <button onClick={loadList}>一覧を取得</button>
         {listError && <p className="err">{listError}</p>}
@@ -131,24 +137,28 @@ export default function Dashboard({ email, onLogout }: Props) {
 
       {/* おすすめ */}
       <section className="card">
+        <p className="section-tag">// 02 Sibyl</p>
         <h2>おすすめ</h2>
-        <select
-          value={strategy}
-          onChange={(e) => setStrategy(e.target.value as StrategyType)}
-        >
-          {STRATEGIES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-        <button onClick={getRecommend}>おすすめを取得</button>
+        <div className="toolbar">
+          <select
+            value={strategy}
+            onChange={(e) => setStrategy(e.target.value as StrategyType)}
+          >
+            {STRATEGIES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <button onClick={getRecommend}>おすすめを取得</button>
+        </div>
         {recError && <p className="err">{recError}</p>}
-        {recommend && <p>{recommend}</p>}
+        {recommend && <p className="readout">{recommend}</p>}
       </section>
 
       {/* 作品登録 */}
       <section className="card">
+        <p className="section-tag">// 03 Enroll</p>
         <h2>作品を登録</h2>
         <form onSubmit={addWork}>
           <label>
