@@ -21,7 +21,7 @@ type StrategyType = (typeof STRATEGIES)[number]["value"];
 
 // ログイン後画面
 export default function Dashboard({ email, onLogout }: Props) {
-  const [userId, setUserId] = useState(1);
+  //const [userId, setUserId] = useState(1);
 
   const [titles, setTitles] = useState<string[]>([]);
   const [listError, setListError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export default function Dashboard({ email, onLogout }: Props) {
   const loadList = async () => {
     setListError(null);
     try {
-      const list = await getJson<string[]>(`/list?user_id=${userId}`);
+      const list = await getJson<string[]>(`/list`);
       setTitles(list.filter((t) => t.trim() !== ""));
     } catch (e) {
       setListError(e instanceof Error ? e.message : "取得に失敗しました");
@@ -57,7 +57,7 @@ export default function Dashboard({ email, onLogout }: Props) {
     setRecommend(null);
     try {
       const res = await getJson<MessageResponse>(
-        `/recommendations?user_id=${userId}&strategy=${strategy}`,
+        `/recommendations?=${strategy}`,
       );
       setRecommend(res.message);
     } catch (e) {
@@ -72,7 +72,7 @@ export default function Dashboard({ email, onLogout }: Props) {
     setWorkMsg(null);
     try {
       const res = await postJson<MessageResponse>("/works", {
-        user_id: userId,
+        //user_id: userId,
         title,
         author,
         description,
@@ -111,6 +111,7 @@ export default function Dashboard({ email, onLogout }: Props) {
         AUTHENTICATED INSPECTOR &mdash; <b>{email}</b>
       </p>
 
+{/*
       <label>
         ユーザID
         <input
@@ -119,6 +120,7 @@ export default function Dashboard({ email, onLogout }: Props) {
           onChange={(e) => setUserId(Number(e.target.value))}
         />
       </label>
+*/}
 
       {/* 作品一覧 */}
       <section className="card">

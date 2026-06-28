@@ -252,7 +252,12 @@ pub async fn login(
 
 // token Cookieを削除してログアウト
 pub async fn logout(jar: CookieJar) -> (CookieJar, Json<MessageResponse>) {
-    let cookie = Cookie::build(("token", "")).path("/").build();
+    let cookie = Cookie::build(("token", ""))
+    .http_only(true)
+    .same_site(SameSite::Lax)
+    .secure(false)// 本番(HTTPS)ではtrueにする
+    .path("/")
+    .build();
     (
         jar.remove(cookie),
         Json(MessageResponse {

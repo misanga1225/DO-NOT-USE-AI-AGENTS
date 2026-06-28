@@ -165,6 +165,7 @@ pub async fn find_user_by_email(
 }
 
 // 認証導入までの動作確認用
+/* 
 pub async fn ensure_demo_user(pool: &PgPool) -> Result<i32, sqlx::Error> {
     if let Some(id) = sqlx::query_scalar!("SELECT id FROM users WHERE name = 'demo'")
         .fetch_optional(pool)
@@ -176,3 +177,4 @@ pub async fn ensure_demo_user(pool: &PgPool) -> Result<i32, sqlx::Error> {
         .fetch_one(pool)
         .await
 }
+*/
