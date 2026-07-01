@@ -1,6 +1,5 @@
 use crate::models::{Status, Work};
 use sqlx::PgPool;
-use sqlx::pool::maybe::MaybePoolConnection::PoolConnection;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 
@@ -15,7 +14,7 @@ pub async fn establish_connection() -> PgPool {
         .expect("プールの作成に失敗しました")
 }
 
-// 作品を追加（genres は別テーブルに展開してリンクする）
+// 作品を追加（genresは別テーブルに展開してリンクする）
 pub async fn insert_work(
     pool: &PgPool,
     work: &Work,
@@ -114,7 +113,12 @@ pub async fn picked_random(pool: &PgPool, user_id: i32) -> Result<Option<String>
 }
 
 // 作品のステータス変更
-pub async fn update_status(pool: &PgPool, user_id: i32, work_id: i32, status: &Status) -> Result<bool, sqlx::Error>{
+pub async fn update_status(
+    pool: &PgPool,
+    user_id: i32,
+    work_id: i32,
+    status: &Status,
+) -> Result<bool, sqlx::Error> {
     Ok(sqlx::query!(
         "UPDATE user_works SET status = $1 WHERE user_id = $2 AND work_id = $3",
         status.as_str(),
@@ -163,18 +167,3 @@ pub async fn find_user_by_email(
     .fetch_optional(pool)
     .await
 }
-
-// 認証導入までの動作確認用
-/* 
-pub async fn ensure_demo_user(pool: &PgPool) -> Result<i32, sqlx::Error> {
-    if let Some(id) = sqlx::query_scalar!("SELECT id FROM users WHERE name = 'demo'")
-        .fetch_optional(pool)
-        .await?
-    {
-        return Ok(id);
-    }
-    sqlx::query_scalar!("INSERT INTO users (name) VALUES ('demo') RETURNING id")
-        .fetch_one(pool)
-        .await
-}
-*/

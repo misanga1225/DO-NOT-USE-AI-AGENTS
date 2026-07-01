@@ -19,7 +19,9 @@ async function handle<T>(res: Response): Promise<T> {
 
 // GETリクエスト
 export async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`);
+  const res = await fetch(`${BASE}${path}`, {
+    credentials: "include",
+  });
   return handle<T>(res);
 }
 
@@ -28,6 +30,7 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(body),
   });
   return handle<T>(res);

@@ -5,8 +5,8 @@ use crate::db;
 use crate::error::AppError;
 use crate::models::{MediaType, Status, Work};
 use crate::state::AppState;
-use axum::{extract::Json, extract::Query, extract::State, extract::Path};
-use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
+use axum::{extract::Json, extract::Path, extract::Query, extract::State};
+use axum_extra::extract::cookie::{Cookie, CookieJar};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -235,12 +235,7 @@ pub async fn login(
 
     // JWTを発行しhttpOnly Cookieに載せて返す
     let token = auth::create_token(user.id, &state.jwt_secret)?;
-    let cookie = Cookie::build(("token", token))
-        .http_only(true) // JSから読めないようにする
-        .same_site(SameSite::Lax)
-        .secure(false) // 本番(HTTPS)ではtrueにする
-        .path("/")
-        .build();
+    let cookie = build_token_cookie(token, &state);
 
     Ok((
         jar.add(cookie),
@@ -250,18 +245,26 @@ pub async fn login(
     ))
 }
 
-// token Cookieを削除してログアウト
-pub async fn logout(jar: CookieJar) -> (CookieJar, Json<MessageResponse>) {
-    let cookie = Cookie::build(("token", ""))
-    .http_only(true)
-    .same_site(SameSite::Lax)
-    .secure(false)// 本番(HTTPS)ではtrueにする
-    .path("/")
-    .build();
+// token Cookieを削除してログアウト（属性をlogin時と揃えないと削除が効かない）
+pub async fn logout(
+    State(state): State<AppState>,
+    jar: CookieJar,
+) -> (CookieJar, Json<MessageResponse>) {
+    let cookie = build_token_cookie(String::new(), &state);
     (
         jar.remove(cookie),
         Json(MessageResponse {
             message: "ログアウトしました".to_string(),
         }),
     )
+}
+
+// token Cookieを共通の属性で組み立てる
+fn build_token_cookie(token: String, state: &AppState) -> Cookie<'static> {
+    Cookie::build(("token", token))
+        .http_only(true)
+        .same_site(state.cookie_same_site)
+        .secure(state.cookie_secure)
+        .path("/")
+        .build()
 }
