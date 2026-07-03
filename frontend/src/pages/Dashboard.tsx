@@ -111,17 +111,6 @@ export default function Dashboard({ email, onLogout }: Props) {
         AUTHENTICATED INSPECTOR &mdash; <b>{email}</b>
       </p>
 
-{/*
-      <label>
-        ユーザID
-        <input
-          type="number"
-          value={userId}
-          onChange={(e) => setUserId(Number(e.target.value))}
-        />
-      </label>
-*/}
-
       {/* 作品一覧 */}
       <section className="card">
         <p className="section-tag">// 01 Archive</p>
