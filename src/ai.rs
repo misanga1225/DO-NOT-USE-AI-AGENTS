@@ -74,9 +74,10 @@ async fn request_completion(prompt: &str) -> Result<serde_json::Value, AppError>
     let status = response.status();
     if !status.is_success() {
         let detail = response.text().await.unwrap_or_default();
-        return Err(AppError::External(format!(
-            "APIがエラーを返しました (status {status}): {detail}"
-        )));
+        tracing::error!("Anthropic API error (status {status}): {detail}");
+        return Err(AppError::External(
+            "AIの処理に失敗しました".to_string()
+        ));
     }
 
     response

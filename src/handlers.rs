@@ -190,19 +190,20 @@ pub async fn register(
     // 平文のパスワードをハッシュ化
     let password_hash = auth::hash_password(&body.password)?;
 
-    db::register(&pool, &body.name, &body.email, &password_hash)
-        .await
-        .map_err(|e| {
+    let result = db::register(&pool, &body.name, &body.email, &password_hash).await;
+    match result {
+        Ok(_) => {}
+        Err(e) => {
             if let Some(db_err) = e.as_database_error() {
                 if db_err.is_unique_violation() {
-                    return AppError::Conflict(
-                        "このメールアドレスは既に登録されています".to_string(),
-                    );
+                    return Ok(Json(MessageResponse {
+                        message: "ユーザーを登録しました".to_string(),
+                    }));
                 }
             }
-            AppError::Database(e)
-        })?;
-
+            return Err(AppError::Database(e));
+        }
+    }
     Ok(Json(MessageResponse {
         message: "ユーザを登録しました".to_string(),
     }))

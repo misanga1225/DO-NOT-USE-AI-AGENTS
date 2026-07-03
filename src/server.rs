@@ -97,6 +97,7 @@ fn cors_layer() -> Option<CorsLayer> {
     }
 
     // Cookie認証のためallow_credentials(true)
+    Some(
         CorsLayer::new()
             .allow_origin(origins)
             .allow_methods([Method::GET, Method::POST, Method::PATCH])
