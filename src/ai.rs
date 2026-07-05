@@ -7,7 +7,13 @@ use std::sync::OnceLock;
 // reqwest::Clientはコネクションプールを持つため使い回す
 fn http_client() -> &'static Client {
     static CLIENT: OnceLock<Client> = OnceLock::new();
-    CLIENT.get_or_init(Client::new)
+    CLIENT.get_or_init(|| {
+        Client::builder()
+            .timeout(std::time::Duration::from_secs(30)) //コネクション全体のタイムアウト
+            .connect_timeout(std::time::Duration::from_secs(5)) //最初の接続確立のタイムアウト
+            .build()
+            .expect("HTTPクライアントの初期化に失敗しました")
+    })
 }
 
 pub enum RecommendMode {
@@ -75,9 +81,7 @@ async fn request_completion(prompt: &str) -> Result<serde_json::Value, AppError>
     if !status.is_success() {
         let detail = response.text().await.unwrap_or_default();
         tracing::error!("Anthropic API error (status {status}): {detail}");
-        return Err(AppError::External(
-            "AIの処理に失敗しました".to_string()
-        ));
+        return Err(AppError::External("AIの処理に失敗しました".to_string()));
     }
 
     response

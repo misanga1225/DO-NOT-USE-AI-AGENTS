@@ -33,16 +33,22 @@ pub fn verify_password(password: &str, password_hash: &str) -> bool {
 pub struct Claims {
     pub sub: i32,
     pub exp: usize,
+    // 発行時点のtoken_version
+    pub ver: i32,
 }
 
 // user_idから署名済みJWTを発行
-pub fn create_token(user_id: i32, secret: &str) -> Result<String, AppError> {
+pub fn create_token(user_id: i32, token_version: i32, secret: &str) -> Result<String, AppError> {
     let exp = (SystemTime::now() + Duration::from_secs(60 * 60 * 24))
         .duration_since(UNIX_EPOCH)
         .expect("システム時刻が不正です")
         .as_secs() as usize;
 
-    let claims = Claims { sub: user_id, exp };
+    let claims = Claims {
+        sub: user_id,
+        exp,
+        ver: token_version,
+    };
 
     encode(
         &Header::default(),
@@ -78,16 +84,27 @@ impl FromRequestParts<AppState> for AuthUser {
             .to_string();
 
         // 署名と有効期限を検証し，中身を取り出す
-        let data = decode::<Claims>(
+        let claims = decode::<Claims>(
             &token,
             &DecodingKey::from_secret(state.jwt_secret.as_bytes()),
             &Validation::default(),
         )
-        .map_err(|_| unauthorized())?;
+        .map_err(|_| unauthorized())?
+        .claims;
+
+        // トークンのバージョンが現在のユーザのものと一致するか確認（失効チェック）
+        let current_version = crate::db::get_token_version(&state.pool, claims.sub)
+            .await
+            .map_err(|_| unauthorized())?
+            .ok_or_else(unauthorized)?;
+
+        if claims.ver != current_version {
+            return Err(unauthorized());
+        }
 
         // 検証済みのuser_idを返す
         Ok(AuthUser {
-            user_id: data.claims.sub,
+            user_id: claims.sub,
         })
     }
 }

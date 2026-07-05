@@ -135,6 +135,26 @@ pub async fn update_status(
 pub struct UserCredentials {
     pub id: i32,
     pub password_hash: Option<String>,
+    // JWTに埋め込む失効用バージョン
+    pub token_version: i32,
+}
+
+// 認証時にトークンのバージョンと照合するために現在のバージョンを引く
+pub async fn get_token_version(pool: &PgPool, user_id: i32) -> Result<Option<i32>, sqlx::Error> {
+    sqlx::query_scalar!("SELECT token_version FROM users WHERE id = $1", user_id)
+        .fetch_optional(pool)
+        .await
+}
+
+// ログアウトで呼んで，既存トークンを無効化
+pub async fn increment_token_version(pool: &PgPool, user_id: i32) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE users SET token_version = token_version + 1 WHERE id = $1",
+        user_id
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 // 新規ユーザーを登録
@@ -161,7 +181,7 @@ pub async fn find_user_by_email(
 ) -> Result<Option<UserCredentials>, sqlx::Error> {
     sqlx::query_as!(
         UserCredentials,
-        "SELECT id, password_hash FROM users WHERE email = $1",
+        "SELECT id, password_hash, token_version FROM users WHERE email = $1",
         email
     )
     .fetch_optional(pool)
