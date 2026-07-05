@@ -2,6 +2,7 @@ use crate::db;
 use crate::handlers;
 use crate::state::AppState;
 use anyhow::Result;
+use axum::extract::DefaultBodyLimit;
 use axum::http::{HeaderValue, Method, header};
 use axum::routing::patch;
 use axum::{Router, routing::get, routing::post};
@@ -45,6 +46,8 @@ pub async fn run() -> Result<()> {
         .route("/register", post(handlers::register))
         .route("/login", post(handlers::login))
         .route("/logout", post(handlers::logout))
+        // リクエストボディの上限を明示（64KBへ）
+        .layer(DefaultBodyLimit::max(64 * 1024))
         .with_state(state);
 
     // 別オリジン構成のときだけCORSを有効化

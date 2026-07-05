@@ -120,6 +120,13 @@ async fn recommend_with_ai(
     }))
 }
 
+// 1リクエストで登録できるジャンル数の上限（過大入力によるDoS防止）
+const MAX_GENRES: usize = 20;
+
+// パスワード長の許容範囲（空パスワードや過大入力によるargon2負荷を防ぐ）
+const PASSWORD_MIN_LEN: usize = 8;
+const PASSWORD_MAX_LEN: usize = 128;
+
 // worksエンドポイントの実装
 #[derive(Deserialize)]
 pub struct WorkRequest {
@@ -138,6 +145,11 @@ pub async fn create_work(
     user: AuthUser,
     Json(body): Json<WorkRequest>,
 ) -> Result<Json<MessageResponse>, AppError> {
+    if body.genres.len() > MAX_GENRES {
+        return Err(AppError::BadRequest(format!(
+            "ジャンルは最大{MAX_GENRES}個までです"
+        )));
+    }
     let work = Work {
         title: body.title,
         author: body.author,
@@ -187,6 +199,14 @@ pub async fn register(
     State(pool): State<PgPool>,
     Json(body): Json<RegisterRequest>,
 ) -> Result<Json<MessageResponse>, AppError> {
+    // パスワード長を検証（空パスワードや過大入力を弾く）
+    let password_len = body.password.chars().count();
+    if !(PASSWORD_MIN_LEN..=PASSWORD_MAX_LEN).contains(&password_len) {
+        return Err(AppError::BadRequest(format!(
+            "パスワードは{PASSWORD_MIN_LEN}〜{PASSWORD_MAX_LEN}文字で入力してください"
+        )));
+    }
+
     // 平文のパスワードをハッシュ化
     let password_hash = auth::hash_password(&body.password)?;
 
@@ -235,7 +255,7 @@ pub async fn login(
     }
 
     // JWTを発行しhttpOnly Cookieに載せて返す
-    let token = auth::create_token(user.id, &state.jwt_secret)?;
+    let token = auth::create_token(user.id, user.token_version, &state.jwt_secret)?;
     let cookie = build_token_cookie(token, &state);
 
     Ok((
@@ -249,15 +269,18 @@ pub async fn login(
 // token Cookieを削除してログアウト（属性をlogin時と揃えないと削除が効かない）
 pub async fn logout(
     State(state): State<AppState>,
+    user: AuthUser,
     jar: CookieJar,
-) -> (CookieJar, Json<MessageResponse>) {
+) -> Result<(CookieJar, Json<MessageResponse>), AppError> {
+    db::increment_token_version(&state.pool, user.user_id).await?;
+
     let cookie = build_token_cookie(String::new(), &state);
-    (
+    Ok((
         jar.remove(cookie),
         Json(MessageResponse {
             message: "ログアウトしました".to_string(),
         }),
-    )
+    ))
 }
 
 // token Cookieを共通の属性で組み立てる
