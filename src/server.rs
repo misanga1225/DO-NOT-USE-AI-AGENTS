@@ -46,6 +46,7 @@ pub async fn run() -> Result<()> {
         .route("/register", post(handlers::register))
         .route("/login", post(handlers::login))
         .route("/logout", post(handlers::logout))
+        .route("/ai-usage", get(handlers::ai_usage))
         // リクエストボディの上限を明示（64KBへ）
         .layer(DefaultBodyLimit::max(64 * 1024))
         .with_state(state);

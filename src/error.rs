@@ -15,6 +15,8 @@ pub enum AppError {
     Unauthorized(String),
     // 既に存在するメールアドレスなど競合したときのエラー
     Conflict(String),
+    // 1日にAIが10回を超える呼び出しがされたときのエラー
+    TooManyRequests(String),
     // AIなどの外部API連携で発生したエラー
     External(String),
 }
@@ -41,6 +43,7 @@ impl IntoResponse for AppError {
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
             AppError::External(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
+            AppError::TooManyRequests(msg) => (StatusCode::TOO_MANY_REQUESTS, msg.clone()),
         };
         (status, Json(ErrorBody { message })).into_response()
     }

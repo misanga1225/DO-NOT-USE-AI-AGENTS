@@ -21,6 +21,19 @@ pub struct MessageResponse {
     pub message: String,
 }
 
+#[derive(Serialize)]
+pub struct RecommendResponse {
+    pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remaining: Option<i32>,
+}
+
+#[derive(Serialize)]
+pub struct AiUsageResponse {
+    pub remaining: i32,
+    pub limit: i32,
+}
+
 pub async fn root() -> Json<MessageResponse> {
     Json(MessageResponse {
         message: "Anime Recommend API".to_string(),
@@ -66,7 +79,7 @@ pub async fn recommendations(
     State(pool): State<PgPool>,
     user: AuthUser,
     Query(query): Query<RecommendQuery>,
-) -> Result<Json<MessageResponse>, AppError> {
+) -> Result<Json<RecommendResponse>, AppError> {
     match query.strategy {
         Strategy::Random => recommend_random(&pool, user.user_id).await,
         Strategy::Ai => recommend_with_ai(&pool, user.user_id, ai::RecommendMode::FromList).await,
@@ -75,11 +88,12 @@ pub async fn recommendations(
 }
 
 // ランダムに選ばれたおすすめ作品の表示
-async fn recommend_random(pool: &PgPool, user_id: i32) -> Result<Json<MessageResponse>, AppError> {
+async fn recommend_random(pool: &PgPool, user_id: i32) -> Result<Json<RecommendResponse>, AppError> {
     match db::picked_random(pool, user_id).await? {
-        Some(title) => Ok(Json(MessageResponse { message: title })),
-        None => Ok(Json(MessageResponse {
+        Some(title) => Ok(Json(RecommendResponse { message: title, remaining: None })),
+        None => Ok(Json(RecommendResponse {
             message: "おすすめできる作品がありません".to_string(),
+            remaining: None,
         })),
     }
 }
@@ -89,7 +103,12 @@ async fn recommend_with_ai(
     pool: &PgPool,
     user_id: i32,
     mode: ai::RecommendMode,
-) -> Result<Json<MessageResponse>, AppError> {
+) -> Result<Json<RecommendResponse>, AppError> {
+    let remaining = db::check_and_increment_ai_calls(pool, user_id, 10)
+    .await?
+    .ok_or(AppError::TooManyRequests(
+        "本日のAI利用回数の上限に達しました".to_string()
+    ))?;
     // 作品一覧取得
     let completed_work_list = db::get_list(pool, user_id, Some(&Status::Completed)).await?;
     let notstarted_work_list = db::get_list(pool, user_id, Some(&Status::NotStarted)).await?;
@@ -98,25 +117,28 @@ async fn recommend_with_ai(
     match mode {
         ai::RecommendMode::FromList => {
             if notstarted_work_list.is_empty() {
-                return Ok(Json(MessageResponse {
+                return Ok(Json(RecommendResponse {
                     message: "未視聴作品がないためレコメンドできません".to_string(),
+                    remaining: None,
                 }));
             }
         }
         ai::RecommendMode::New => {
             if completed_work_list.is_empty() {
-                return Ok(Json(MessageResponse {
+                return Ok(Json(RecommendResponse {
                     message: "視聴済み作品がないためレコメンドできません".to_string(),
+                    remaining: None,
                 }));
             }
         }
     }
     // 関数呼び出し
-    let response_messeage = ai::recommend(completed_work_list, notstarted_work_list, mode).await?;
+    let response_message = ai::recommend(completed_work_list, notstarted_work_list, mode).await?;
 
     // APIを呼ぶ
-    Ok(Json(MessageResponse {
-        message: response_messeage,
+    Ok(Json(RecommendResponse {
+        message: response_message,
+        remaining: Some(remaining),
     }))
 }
 
@@ -291,4 +313,22 @@ fn build_token_cookie(token: String, state: &AppState) -> Cookie<'static> {
         .secure(state.cookie_secure)
         .path("/")
         .build()
+}
+
+pub async fn ai_usage(
+    State(pool): State<PgPool>,
+    user: AuthUser,
+) -> Result<Json<AiUsageResponse>, AppError> {
+    const LIMIT: i32 = 10;
+    let calls = sqlx::query_scalar!(
+    "SELECT ai_calls_today FROM users WHERE id = $1",
+    user.user_id
+    )
+    .fetch_optional(&pool)
+    .await?
+    .unwrap_or(0);
+
+    Ok(Json(AiUsageResponse { remaining: (LIMIT - calls).max(0),
+    limit: LIMIT,
+    }))
 }
