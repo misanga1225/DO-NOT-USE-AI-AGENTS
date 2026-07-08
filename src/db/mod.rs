@@ -187,3 +187,29 @@ pub async fn find_user_by_email(
     .fetch_optional(pool)
     .await
 }
+
+pub async fn check_and_increment_ai_calls(
+    pool: &PgPool,
+    user_id: i32,
+    limit: i32,
+) -> Result<Option<i32>, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"
+        UPDATE users
+        SET
+          ai_calls_today = CASE
+            WHEN ai_calls_reset_at < CURRENT_DATE THEN 1
+            ELSE ai_calls_today + 1
+          END,
+          ai_calls_reset_at = CURRENT_DATE
+        WHERE id = $1
+          AND (ai_calls_reset_at < CURRENT_DATE OR ai_calls_today < $2)
+        RETURNING ($2 - ai_calls_today)::int
+        "#,
+        user_id,
+        limit
+    )
+    .fetch_optional(pool)
+    .await
+    .map(|opt| opt.flatten())
+}
