@@ -1,0 +1,3 @@
+ALTER TABLE users
+  ADD COLUMN ai_calls_today    INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN ai_calls_reset_at DATE    NOT NULL DEFAULT CURRENT_DATE;

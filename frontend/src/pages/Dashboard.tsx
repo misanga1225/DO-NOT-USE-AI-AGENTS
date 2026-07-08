@@ -57,7 +57,7 @@ export default function Dashboard({ email, onLogout }: Props) {
     setRecommend(null);
     try {
       const res = await getJson<MessageResponse>(
-        `/recommendations?=${strategy}`,
+        `/recommendations?strategy=${strategy}`,
       );
       setRecommend(res.message);
     } catch (e) {
