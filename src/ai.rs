@@ -27,10 +27,10 @@ pub async fn recommend(
     not_started: Vec<String>,
     mode: RecommendMode,
 ) -> Result<String, AppError> {
-    let (system, user_content) = build_prompt(&completed, &not_started, &mode);
-    let response_json = request_completion(&system, &user_content).await?;
-    let text = extract_text(&response_json)?;
-    Ok(text)
+    let prompt = build_prompt(&completed, &not_started, &mode);
+    let response_json = request_completion(&prompt).await?;
+    let message = extract_recommendation(&response_json)?;
+    Ok(message)
 }
 
 // プロンプト組み立て
@@ -62,11 +62,32 @@ async fn request_completion(system: &str, user_content: &str) -> Result<serde_js
     let api_key = var("ANTHROPIC_API_KEY")
         .map_err(|_| AppError::External("ANTHROPIC_API_KEYが設定されていません".to_string()))?;
 
+    // Tool use（構造化出力）でおすすめを受け取る
     let body = json!({
         "model": "claude-haiku-4-5-20251001",
         "max_tokens": 1024,
-        "system": system,
-        "messages": [{"role": "user", "content": user_content}]
+        "tools": [{
+            "name": "recommend_work",
+            "description": "ユーザーにおすすめする作品を1つ提示する",
+            "strict": true,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "おすすめする作品名（作品名のみ．前置きや理由は含めない）"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "その作品をおすすめする理由（簡潔に日本語で）"
+                    }
+                },
+                "required": ["title", "reason"],
+                "additionalProperties": false
+            }
+        }],
+        "tool_choice": {"type": "tool", "name": "recommend_work"},
+        "messages": [{"role": "user", "content": prompt}]
     });
 
     let response = http_client()
@@ -92,15 +113,22 @@ async fn request_completion(system: &str, user_content: &str) -> Result<serde_js
         .map_err(|e| AppError::External(e.to_string()))
 }
 
-// レスポンスJSONから本文テキストを取り出す
-fn extract_text(json: &serde_json::Value) -> Result<String, AppError> {
-    let text = json["content"][0]["text"]
-        .as_str()
-        .ok_or(AppError::External(
-            "レスポンスの解析に失敗しました".to_string(),
-        ))?
-        .to_string();
-    Ok(text)
+// レスポンスJSONからtool_useブロックの構造化データ（title / reason）を取り出して表示用の文章に整形
+fn extract_recommendation(json: &serde_json::Value) -> Result<String, AppError> {
+    let parse_err = || AppError::External("レスポンスの解析に失敗しました".to_string());
+
+    let tool_input = json["content"]
+        .as_array()
+        .ok_or_else(parse_err)?
+        .iter()
+        .find(|block| block["type"] == "tool_use")
+        .map(|block| &block["input"])
+        .ok_or_else(parse_err)?;
+
+    let title = tool_input["title"].as_str().ok_or_else(parse_err)?;
+    let reason = tool_input["reason"].as_str().ok_or_else(parse_err)?;
+
+    Ok(format!("『{title}』\n\n{reason}"))
 }
 
 #[cfg(test)]
@@ -109,14 +137,37 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn extract_text_ok() {
-        let v = json!({"content": [{ "type": "text", "text": "進撃の巨人おすすめ" }] });
-        assert_eq!(extract_text(&v).unwrap(), "進撃の巨人おすすめ");
+    fn extract_recommendation_ok() {
+        let v = json!({
+            "content": [{
+                "type": "tool_use",
+                "name": "recommend_work",
+                "input": { "title": "進撃の巨人", "reason": "ダークな世界観が好みに合いそうだから" }
+            }]
+        });
+        assert_eq!(
+            extract_recommendation(&v).unwrap(),
+            "『進撃の巨人』\n\nダークな世界観が好みに合いそうだから"
+        );
     }
 
     #[test]
-    fn extract_text_err() {
+    fn extract_recommendation_err() {
+        // tool_useブロックが無い（エラーレスポンス）ケース
         let v = json!({ "type": "error", "error": { "message": "invalid api key" } });
-        assert!(extract_text(&v).is_err());
+        assert!(extract_recommendation(&v).is_err());
+    }
+
+    #[test]
+    fn extract_recommendation_missing_field_err() {
+        // titleが欠けているケース
+        let v = json!({
+            "content": [{
+                "type": "tool_use",
+                "name": "recommend_work",
+                "input": { "reason": "理由だけある" }
+            }]
+        });
+        assert!(extract_recommendation(&v).is_err());
     }
 }
